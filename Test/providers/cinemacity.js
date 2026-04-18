@@ -98,19 +98,23 @@ var require_formatter = __commonJS({
       else if (quality === "576p" || quality === "480p" || quality === "360p" || quality === "240p") quality = "\u{1F4A9} Low Quality";
       else if (!quality || ["auto", "unknown", "unknow"].includes(String(quality).toLowerCase())) quality = "Unknow";
       let title = `\u{1F4C1} ${stream.title || "Stream"}`;
-      let language = stream.language;
-      if (!language) {
-        if (stream.name && (stream.name.includes("SUB ITA") || stream.name.includes("SUB"))) language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
-        else if (stream.title && (stream.title.includes("SUB ITA") || stream.title.includes("SUB"))) language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
-        else language = "\u{1F1EE}\u{1F1F9}";
-      }
-      let details = [];
-      if (stream.size) details.push(`\u{1F4E6} ${stream.size}`);
-      const desc = details.join(" | ");
-      let pName = stream.name || stream.server || providerName;
-      if (pName) {
-        pName = pName.replace(/\s*\[?\(?\s*SUB\s*ITA\s*\)?\]?/i, "").replace(/\s*\[?\(?\s*ITA\s*\)?\]?/i, "").replace(/\s*\[?\(?\s*SUB\s*\)?\]?/i, "").replace(/\(\s*\)/g, "").replace(/\[\s*\]/g, "").trim();
-      }
+let language = stream.language;
+if (!language) {
+  const checkText = ((stream.name || "") + " " + (stream.title || "")).toUpperCase();
+  let detectedFlags = [];
+
+  if (checkText.includes("GER") || checkText.includes("DEU") || checkText.includes("TED")) 
+    detectedFlags.push("\u{1F1E9}\u{1F1EA}"); // 🇩🇪
+  if (checkText.includes("ITA")) 
+    detectedFlags.push("\u{1F1EE}\u{1F1F9}"); // 🇮🇹
+  if (checkText.includes("FRA") || checkText.includes("VF")) 
+    detectedFlags.push("\u{1F1EB}\u{1F1F7}"); // 🇫🇷
+  if (checkText.includes("ENG") || checkText.includes("VOST") || checkText.includes("SUB")) 
+    detectedFlags.push("\u{1F1EC}\u{1F1E7}"); // 🇬🇧
+  if (checkText.includes("SPA") || checkText.includes("ESP")) 
+    detectedFlags.push("\u{1F1EA}\u{1F1F8}"); // 🇪🇸
+  language = detectedFlags.length > 0 ? detectedFlags.join(" ") : "\u{1F1EE}\u{1F1F9}";
+}
       if (pName === providerName) {
         pName = pName.charAt(0).toUpperCase() + pName.slice(1);
       }
