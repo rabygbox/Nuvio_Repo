@@ -578,7 +578,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
             notWebReady: false
           }
         };
-        return [formatStream(result, "StreamingCommunity")].filter((s) => s !== null);
+        return [formatStream(result, "SC")].filter((s) => s !== null);
       } else {
         console.log("[StreamingCommunity] Could not find playlist info in HTML");
         return [];
