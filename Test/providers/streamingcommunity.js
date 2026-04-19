@@ -124,8 +124,8 @@ var require_formatter = __commonJS({
         finalHeaders = behaviorHints.headers;
       }
       finalHeaders = normalizePlaybackHeaders(finalHeaders);
-      const isStreamingCommunityProvider = String(providerName || "").toLowerCase() === "streamingcommunity" || String((stream == null ? void 0 : stream.name) || "").toLowerCase().includes("streamingcommunity");
-      if (isStreamingCommunityProvider && !finalHeaders) {
+      const isSCProvider = String(providerName || "").toLowerCase() === "SC" || String((stream == null ? void 0 : stream.name) || "").toLowerCase().includes("SC");
+      if (isSCProvider && !finalHeaders) {
         delete behaviorHints.proxyHeaders;
         delete behaviorHints.headers;
         delete behaviorHints.notWebReady;
@@ -136,7 +136,7 @@ var require_formatter = __commonJS({
         behaviorHints.headers = finalHeaders;
       }
       const shouldForceNotWebReady = shouldForceNotWebReadyForPlugin(stream, providerName, finalHeaders, behaviorHints);
-      if (!isStreamingCommunityProvider && shouldForceNotWebReady) {
+      if (!isSCProvider && shouldForceNotWebReady) {
         behaviorHints.notWebReady = true;
       } else {
         delete behaviorHints.notWebReady;
@@ -285,8 +285,8 @@ var require_quality_helper = __commonJS({
   }
 });
 
-// src/streamingcommunity/index.js
-function getStreamingCommunityBaseUrl() {
+// src/SC/index.js
+function getSCBaseUrl() {
   return "https://vixsrc.to";
 }
 var { formatStream } = require_formatter();
@@ -306,7 +306,7 @@ var USER_AGENT = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, 
 function getCommonHeaders() {
   return {
     "User-Agent": USER_AGENT,
-    "Referer": `${getStreamingCommunityBaseUrl()}/`,
+    "Referer": `${getSCBaseUrl()}/`,
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
     "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
     "Sec-Fetch-Dest": "document",
@@ -319,7 +319,7 @@ function getCommonHeaders() {
 function getEmbedHeaders(embedUrl) {
   return {
     "User-Agent": USER_AGENT,
-    "Referer": `${getStreamingCommunityBaseUrl()}/`,
+    "Referer": `${getSCBaseUrl()}/`,
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
     "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7"
   };
@@ -328,7 +328,7 @@ function getPlaylistHeaders(embedUrl) {
   return {
     "User-Agent": USER_AGENT,
     "Referer": embedUrl,
-    "Origin": getStreamingCommunityBaseUrl(),
+    "Origin": getSCBaseUrl(),
     "Accept": "*/*",
     "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
     "Sec-Fetch-Dest": "empty",
@@ -340,7 +340,7 @@ function extractEmbedSrcFromApiPayload(payload) {
   const rawSrc = payload && typeof payload === "object" ? payload.src : null;
   if (!rawSrc) return null;
   try {
-    return new URL(rawSrc, getStreamingCommunityBaseUrl()).toString();
+    return new URL(rawSrc, getSCBaseUrl()).toString();
   } catch (e) {
     return null;
   }
@@ -399,7 +399,7 @@ function getTmdbId(imdbId, type) {
       }
       return null;
     } catch (e) {
-      console.error("[StreamingCommunity] Conversion error:", e);
+      console.error("[SC] Conversion error:", e);
       return null;
     }
   });
@@ -426,7 +426,7 @@ function getMetadata(id, type) {
       }
       return null;
     } catch (e) {
-      console.error("[StreamingCommunity] Metadata error:", e);
+      console.error("[SC] Metadata error:", e);
       return null;
     }
   });
@@ -438,7 +438,7 @@ function hasGuardaFallbackResults(id, type, season, episode, providerContext) {
     if (normalizedType === "movie" && guardahd && typeof guardahd.getStreams === "function") {
       checks.push(
         guardahd.getStreams(id, normalizedType, season, episode).then((streams) => Array.isArray(streams) && streams.length > 0).catch((e) => {
-          console.warn("[StreamingCommunity] GuardaHD fallback check failed:", e);
+          console.warn("[SC] GuardaHD fallback check failed:", e);
           return false;
         })
       );
@@ -446,7 +446,7 @@ function hasGuardaFallbackResults(id, type, season, episode, providerContext) {
     if (normalizedType === "tv" && guardaserie && typeof guardaserie.getStreams === "function") {
       checks.push(
         guardaserie.getStreams(id, normalizedType, season, episode, providerContext).then((streams) => Array.isArray(streams) && streams.length > 0).catch((e) => {
-          console.warn("[StreamingCommunity] Guardaserie fallback check failed:", e);
+          console.warn("[SC] Guardaserie fallback check failed:", e);
           return false;
         })
       );
@@ -460,7 +460,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
   return __async(this, null, function* () {
     const requestedType = String(type).toLowerCase();
     const normalizedType = requestedType === "series" ? "tv" : requestedType;
-    const baseUrl = getStreamingCommunityBaseUrl();
+    const baseUrl = getSCBaseUrl();
     const commonHeaders = getCommonHeaders();
     let tmdbId = id.toString();
     let resolvedSeason = season;
@@ -472,17 +472,17 @@ function getStreams(id, type, season, episode, providerContext = null) {
     } else if (tmdbId.startsWith("tt")) {
       const convertedId = yield getTmdbId(tmdbId, normalizedType);
       if (convertedId) {
-        console.log(`[StreamingCommunity] Converted ${id} to TMDB ID: ${convertedId}`);
+        console.log(`[SC] Converted ${id} to TMDB ID: ${convertedId}`);
         tmdbId = convertedId;
       } else {
-        console.warn(`[StreamingCommunity] Could not convert IMDb ID ${id} to TMDB ID.`);
+        console.warn(`[SC] Could not convert IMDb ID ${id} to TMDB ID.`);
       }
     }
     let metadata = null;
     try {
       metadata = yield getMetadata(tmdbId, type);
     } catch (e) {
-      console.error("[StreamingCommunity] Error fetching metadata:", e);
+      console.error("[SC] Error fetching metadata:", e);
     }
     const title = metadata && (metadata.title || metadata.name || metadata.original_title || metadata.original_name) ? metadata.title || metadata.name || metadata.original_title || metadata.original_name : normalizedType === "movie" ? "Film Sconosciuto" : "Serie TV";
     const displayName = normalizedType === "movie" ? title : `${title} ${resolvedSeason}x${episode}`;
@@ -499,29 +499,29 @@ function getStreams(id, type, season, episode, providerContext = null) {
       return [];
     }
     try {
-      console.log(`[StreamingCommunity] Fetching API: ${apiUrl}`);
+      console.log(`[SC] Fetching API: ${apiUrl}`);
       const response = yield fetch(apiUrl, {
         headers: commonHeaders
       });
       if (!response.ok) {
-        console.error(`[StreamingCommunity] Failed to fetch page: ${response.status}`);
+        console.error(`[SC] Failed to fetch page: ${response.status}`);
         return [];
       }
       const apiPayload = yield response.json().catch(() => null);
       const embedUrl = extractEmbedSrcFromApiPayload(apiPayload);
       if (!embedUrl) {
-        console.log("[StreamingCommunity] Could not find embed src in API payload");
+        console.log("[SC] Could not find embed src in API payload");
         return [];
       }
       if (providerContext == null ? void 0 : providerContext.proxyUrl) {
         const rawPageUrl = url.endsWith("/") ? url : `${url}/`;
-        console.log(`[StreamingCommunity] Proxy enabled, returning raw page URL: ${rawPageUrl}`);
+        console.log(`[SC] Proxy enabled, returning raw page URL: ${rawPageUrl}`);
         const result = {
           name: `SC`,
           title: finalDisplayName,
           url: rawPageUrl,
           easyProxySourceUrl: rawPageUrl,
-          // Stremio addon uses EasyProxy path for StreamingCommunity, so expose default quality here too.
+          // Stremio addon uses EasyProxy path for SC, so expose default quality here too.
           quality: "1080p",
           type: "direct",
           behaviorHints: {
@@ -530,12 +530,12 @@ function getStreams(id, type, season, episode, providerContext = null) {
         };
         return [formatStream(result, "SC")].filter((s) => s !== null);
       }
-      console.log(`[StreamingCommunity] Fetching embed: ${embedUrl}`);
+      console.log(`[SC] Fetching embed: ${embedUrl}`);
       const embedResponse = yield fetch(embedUrl, {
         headers: getEmbedHeaders(embedUrl)
       });
       if (!embedResponse.ok) {
-        console.error(`[StreamingCommunity] Failed to fetch embed: ${embedResponse.status}`);
+        console.error(`[SC] Failed to fetch embed: ${embedResponse.status}`);
         return [];
       }
       const embedHtml = yield embedResponse.text();
@@ -544,7 +544,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
       if (masterPlaylist) {
         const streamUrl = `${masterPlaylist.url}?token=${encodeURIComponent(masterPlaylist.token)}&expires=${encodeURIComponent(masterPlaylist.expires)}&h=1&lang=it`;
         const streamHeaders = getPlaylistHeaders(embedUrl);
-        console.log(`[StreamingCommunity] Final stream URL: ${streamUrl}`);
+        console.log(`[SC] Final stream URL: ${streamUrl}`);
         let quality = "1080p";
         try {
           const playlistResponse = yield fetch(streamUrl, {
@@ -557,13 +557,13 @@ function getStreams(id, type, season, episode, providerContext = null) {
             if (detected) quality = detected;
             const originalLanguageItalian = metadata && (metadata.original_language === "it" || metadata.original_language === "ita");
             if (!hasItalian && !originalLanguageItalian) {
-              console.log(`[StreamingCommunity] No Italian audio found. Checking fallback.`);
+              console.log(`[SC] No Italian audio found. Checking fallback.`);
               const fallbackOk = yield hasGuardaFallbackResults(id, normalizedType, resolvedSeason, episode, providerContext);
               if (!fallbackOk) return [];
             }
           }
         } catch (e) {
-          console.warn(`[StreamingCommunity] Playlist pre-check failed, continuing:`, e);
+          console.warn(`[SC] Playlist pre-check failed, continuing:`, e);
         }
         const normalizedQuality = getQualityFromName(quality);
         const result = {
@@ -580,11 +580,11 @@ function getStreams(id, type, season, episode, providerContext = null) {
         };
         return [formatStream(result, "SC")].filter((s) => s !== null);
       } else {
-        console.log("[StreamingCommunity] Could not find playlist info in HTML");
+        console.log("[SC] Could not find playlist info in HTML");
         return [];
       }
     } catch (error) {
-      console.error("[StreamingCommunity] Error:", error);
+      console.error("[SC] Error:", error);
       return [];
     }
   });
