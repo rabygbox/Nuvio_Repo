@@ -4,7 +4,7 @@
   "scrapers": [
     {
       "id": "easystreams-guardoserie",
-      "name": "SerieTV",
+      "name": "SerieTV Server 1",
       "version": "1.1.16",
       "description": "Movies and Series from Guardoserie",
       "resources": ["stream"],
@@ -17,7 +17,7 @@
     },
     {
       "id": "easystreams-guardahd",
-      "name": "SerieTV",
+      "name": "SerieTV Server 2",
       "version": "1.1.11",
       "description": "Movies from GuardaHD",
       "resources": ["stream"],
