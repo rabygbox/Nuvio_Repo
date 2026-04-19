@@ -3,8 +3,8 @@
   "version": "1.1.57",
   "scrapers": [
     {
-      "id": "Test-guardoserie",
-      "name": "Guardoserie",
+      "id": "Test-showguardo",
+      "name": "Guardoshow",
       "version": "1.1.16",
       "description": "Movies and Series from Guardoserie",
       "resources": ["stream"],
