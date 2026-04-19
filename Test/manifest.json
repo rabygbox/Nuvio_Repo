@@ -4,8 +4,8 @@
   "scrapers": [
     {
       "id": "easystreams-guardoserie",
-      "name": "Server",
-      "version": "1.1.17",
+      "name": "Server 1",
+      "version": "1.1.16",
       "description": "Movies and Series from Guardoserie",
       "resources": ["stream"],
       "contentLanguage": ["it"],
