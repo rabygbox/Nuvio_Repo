@@ -124,8 +124,8 @@ var require_formatter = __commonJS({
         finalHeaders = behaviorHints.headers;
       }
       finalHeaders = normalizePlaybackHeaders(finalHeaders);
-      const isServer 1Provider = String(providerName || "").toLowerCase() === "Server 1" || String((stream == null ? void 0 : stream.name) || "").toLowerCase().includes("Server 1");
-      if (isServer 1Provider && !finalHeaders) {
+      const isServerUnoProvider = String(providerName || "").toLowerCase() === "ServerUno" || String((stream == null ? void 0 : stream.name) || "").toLowerCase().includes("ServerUno");
+      if (isServerUnoProvider && !finalHeaders) {
         delete behaviorHints.proxyHeaders;
         delete behaviorHints.headers;
         delete behaviorHints.notWebReady;
@@ -136,7 +136,7 @@ var require_formatter = __commonJS({
         behaviorHints.headers = finalHeaders;
       }
       const shouldForceNotWebReady = shouldForceNotWebReadyForPlugin(stream, providerName, finalHeaders, behaviorHints);
-      if (!isServer 1Provider && shouldForceNotWebReady) {
+      if (!isServerUnoProvider && shouldForceNotWebReady) {
         behaviorHints.notWebReady = true;
       } else {
         delete behaviorHints.notWebReady;
@@ -285,8 +285,8 @@ var require_quality_helper = __commonJS({
   }
 });
 
-// src/Server 1/index.js
-function getServer 1BaseUrl() {
+// src/ServerUno/index.js
+function getServerUnoBaseUrl() {
   return "https://vixsrc.to";
 }
 var { formatStream } = require_formatter();
@@ -306,7 +306,7 @@ var USER_AGENT = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, 
 function getCommonHeaders() {
   return {
     "User-Agent": USER_AGENT,
-    "Referer": `${getServer 1BaseUrl()}/`,
+    "Referer": `${getServerUnoBaseUrl()}/`,
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
     "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
     "Sec-Fetch-Dest": "document",
@@ -319,7 +319,7 @@ function getCommonHeaders() {
 function getEmbedHeaders(embedUrl) {
   return {
     "User-Agent": USER_AGENT,
-    "Referer": `${getServer 1BaseUrl()}/`,
+    "Referer": `${getServerUnoBaseUrl()}/`,
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
     "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7"
   };
@@ -328,7 +328,7 @@ function getPlaylistHeaders(embedUrl) {
   return {
     "User-Agent": USER_AGENT,
     "Referer": embedUrl,
-    "Origin": getServer 1BaseUrl(),
+    "Origin": getServerUnoBaseUrl(),
     "Accept": "*/*",
     "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
     "Sec-Fetch-Dest": "empty",
@@ -340,7 +340,7 @@ function extractEmbedSrcFromApiPayload(payload) {
   const rawSrc = payload && typeof payload === "object" ? payload.src : null;
   if (!rawSrc) return null;
   try {
-    return new URL(rawSrc, getServer 1BaseUrl()).toString();
+    return new URL(rawSrc, getServerUnoBaseUrl()).toString();
   } catch (e) {
     return null;
   }
@@ -399,7 +399,7 @@ function getTmdbId(imdbId, type) {
       }
       return null;
     } catch (e) {
-      console.error("[Server 1] Conversion error:", e);
+      console.error("[ServerUno] Conversion error:", e);
       return null;
     }
   });
@@ -426,7 +426,7 @@ function getMetadata(id, type) {
       }
       return null;
     } catch (e) {
-      console.error("[Server 1] Metadata error:", e);
+      console.error("[ServerUno] Metadata error:", e);
       return null;
     }
   });
@@ -438,7 +438,7 @@ function hasGuardaFallbackResults(id, type, season, episode, providerContext) {
     if (normalizedType === "movie" && guardahd && typeof guardahd.getStreams === "function") {
       checks.push(
         guardahd.getStreams(id, normalizedType, season, episode).then((streams) => Array.isArray(streams) && streams.length > 0).catch((e) => {
-          console.warn("[Server 1] GuardaHD fallback check failed:", e);
+          console.warn("[ServerUno] GuardaHD fallback check failed:", e);
           return false;
         })
       );
@@ -446,7 +446,7 @@ function hasGuardaFallbackResults(id, type, season, episode, providerContext) {
     if (normalizedType === "tv" && guardaserie && typeof guardaserie.getStreams === "function") {
       checks.push(
         guardaserie.getStreams(id, normalizedType, season, episode, providerContext).then((streams) => Array.isArray(streams) && streams.length > 0).catch((e) => {
-          console.warn("[Server 1] Guardaserie fallback check failed:", e);
+          console.warn("[ServerUno] Guardaserie fallback check failed:", e);
           return false;
         })
       );
@@ -460,7 +460,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
   return __async(this, null, function* () {
     const requestedType = String(type).toLowerCase();
     const normalizedType = requestedType === "series" ? "tv" : requestedType;
-    const baseUrl = getServer 1BaseUrl();
+    const baseUrl = getServerUnoBaseUrl();
     const commonHeaders = getCommonHeaders();
     let tmdbId = id.toString();
     let resolvedSeason = season;
@@ -472,17 +472,17 @@ function getStreams(id, type, season, episode, providerContext = null) {
     } else if (tmdbId.startsWith("tt")) {
       const convertedId = yield getTmdbId(tmdbId, normalizedType);
       if (convertedId) {
-        console.log(`[Server 1] Converted ${id} to TMDB ID: ${convertedId}`);
+        console.log(`[ServerUno] Converted ${id} to TMDB ID: ${convertedId}`);
         tmdbId = convertedId;
       } else {
-        console.warn(`[Server 1] Could not convert IMDb ID ${id} to TMDB ID.`);
+        console.warn(`[ServerUno] Could not convert IMDb ID ${id} to TMDB ID.`);
       }
     }
     let metadata = null;
     try {
       metadata = yield getMetadata(tmdbId, type);
     } catch (e) {
-      console.error("[Server 1] Error fetching metadata:", e);
+      console.error("[ServerUno] Error fetching metadata:", e);
     }
     const title = metadata && (metadata.title || metadata.name || metadata.original_title || metadata.original_name) ? metadata.title || metadata.name || metadata.original_title || metadata.original_name : normalizedType === "movie" ? "Film Sconosciuto" : "Serie TV";
     const displayName = normalizedType === "movie" ? title : `${title} ${resolvedSeason}x${episode}`;
@@ -499,43 +499,43 @@ function getStreams(id, type, season, episode, providerContext = null) {
       return [];
     }
     try {
-      console.log(`[Server 1] Fetching API: ${apiUrl}`);
+      console.log(`[ServerUno] Fetching API: ${apiUrl}`);
       const response = yield fetch(apiUrl, {
         headers: commonHeaders
       });
       if (!response.ok) {
-        console.error(`[Server 1] Failed to fetch page: ${response.status}`);
+        console.error(`[ServerUno] Failed to fetch page: ${response.status}`);
         return [];
       }
       const apiPayload = yield response.json().catch(() => null);
       const embedUrl = extractEmbedSrcFromApiPayload(apiPayload);
       if (!embedUrl) {
-        console.log("[Server 1] Could not find embed src in API payload");
+        console.log("[ServerUno] Could not find embed src in API payload");
         return [];
       }
       if (providerContext == null ? void 0 : providerContext.proxyUrl) {
         const rawPageUrl = url.endsWith("/") ? url : `${url}/`;
-        console.log(`[Server 1] Proxy enabled, returning raw page URL: ${rawPageUrl}`);
+        console.log(`[ServerUno] Proxy enabled, returning raw page URL: ${rawPageUrl}`);
         const result = {
-          name: `Server 1`,
+          name: `ServerUno`,
           title: finalDisplayName,
           url: rawPageUrl,
           easyProxySourceUrl: rawPageUrl,
-          // Stremio addon uses EasyProxy path for Server 1, so expose default quality here too.
+          // Stremio addon uses EasyProxy path for ServerUno, so expose default quality here too.
           quality: "1080p",
           type: "direct",
           behaviorHints: {
             notWebReady: false
           }
         };
-        return [formatStream(result, "Server 1")].filter((s) => s !== null);
+        return [formatStream(result, "ServerUno")].filter((s) => s !== null);
       }
-      console.log(`[Server 1] Fetching embed: ${embedUrl}`);
+      console.log(`[ServerUno] Fetching embed: ${embedUrl}`);
       const embedResponse = yield fetch(embedUrl, {
         headers: getEmbedHeaders(embedUrl)
       });
       if (!embedResponse.ok) {
-        console.error(`[Server 1] Failed to fetch embed: ${embedResponse.status}`);
+        console.error(`[ServerUno] Failed to fetch embed: ${embedResponse.status}`);
         return [];
       }
       const embedHtml = yield embedResponse.text();
@@ -544,7 +544,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
       if (masterPlaylist) {
         const streamUrl = `${masterPlaylist.url}?token=${encodeURIComponent(masterPlaylist.token)}&expires=${encodeURIComponent(masterPlaylist.expires)}&h=1&lang=it`;
         const streamHeaders = getPlaylistHeaders(embedUrl);
-        console.log(`[Server 1] Final stream URL: ${streamUrl}`);
+        console.log(`[ServerUno] Final stream URL: ${streamUrl}`);
         let quality = "1080p";
         try {
           const playlistResponse = yield fetch(streamUrl, {
@@ -557,17 +557,17 @@ function getStreams(id, type, season, episode, providerContext = null) {
             if (detected) quality = detected;
             const originalLanguageItalian = metadata && (metadata.original_language === "it" || metadata.original_language === "ita");
             if (!hasItalian && !originalLanguageItalian) {
-              console.log(`[Server 1] No Italian audio found. Checking fallback.`);
+              console.log(`[ServerUno] No Italian audio found. Checking fallback.`);
               const fallbackOk = yield hasGuardaFallbackResults(id, normalizedType, resolvedSeason, episode, providerContext);
               if (!fallbackOk) return [];
             }
           }
         } catch (e) {
-          console.warn(`[Server 1] Playlist pre-check failed, continuing:`, e);
+          console.warn(`[ServerUno] Playlist pre-check failed, continuing:`, e);
         }
         const normalizedQuality = getQualityFromName(quality);
         const result = {
-          name: `Server 1`,
+          name: `ServerUno`,
           title: finalDisplayName,
           url: streamUrl,
           easyProxySourceUrl: embedUrl,
@@ -578,13 +578,13 @@ function getStreams(id, type, season, episode, providerContext = null) {
             notWebReady: false
           }
         };
-        return [formatStream(result, "Server 1")].filter((s) => s !== null);
+        return [formatStream(result, "ServerUno")].filter((s) => s !== null);
       } else {
-        console.log("[Server 1] Could not find playlist info in HTML");
+        console.log("[ServerUno] Could not find playlist info in HTML");
         return [];
       }
     } catch (error) {
-      console.error("[Server 1] Error:", error);
+      console.error("[ServerUno] Error:", error);
       return [];
     }
   });
