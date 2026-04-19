@@ -286,7 +286,7 @@ var require_quality_helper = __commonJS({
   }
 });
 
-// src/cinemacity/index.js
+// src/Cinecittà/index.js
 var { formatStream } = require_formatter();
 var { checkQualityFromPlaylist } = require_quality_helper();
 var { fetchWithTimeout } = require_fetch_helper();
@@ -321,7 +321,7 @@ function base64Decode(str) {
       return output;
     }
   } catch (e) {
-    console.error("[CinemaCity] Base64 decode error:", e);
+    console.error("[Cinecittà] Base64 decode error:", e);
     return "";
   }
 }
@@ -386,7 +386,7 @@ function getIdsFromKitsu(kitsuId, season, episode, providerContext = null) {
         rawEpisodeNumber: Number.isInteger(rawEpisodeNumber) && rawEpisodeNumber > 0 ? rawEpisodeNumber : null
       };
     } catch (e) {
-      console.error("[CinemaCity] Kitsu mapping error:", e);
+      console.error("[Cinecittà] Kitsu mapping error:", e);
       return null;
     }
   });
@@ -426,7 +426,7 @@ function searchByImdb(imdbId) {
           if (pos !== -1 && pos < contentEndIdx) contentEndIdx = pos;
         }
         searchArea = html.substring(markerIdx, contentEndIdx);
-        const links = [...searchArea.matchAll(/<a[^>]+href=["']((?:https?:\/\/cinemacity\.cc)?\/(?:movies|anime|series|tv-series)\/\d+-[^"']+\.html)["'][^>]*>([\s\S]*?)<\/a>/gi)];
+        const links = [...searchArea.matchAll(/<a[^>]+href=["']((?:https?:\/\/Cinecittà\.cc)?\/(?:movies|anime|series|tv-series)\/\d+-[^"']+\.html)["'][^>]*>([\s\S]*?)<\/a>/gi)];
         if (links.length > 0) {
           let bestMatch = links[0];
           const queryPos = searchArea.indexOf(query);
@@ -446,7 +446,7 @@ function searchByImdb(imdbId) {
           return { url: bestLink, title: bestTitle };
         }
       } catch (e) {
-        console.error(`[CinemaCity] Search error for ${query}:`, e);
+        console.error(`[Cinecittà] Search error for ${query}:`, e);
       }
       return null;
     });
@@ -615,7 +615,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
             }
           }
         } catch (e) {
-          console.error("[CinemaCity] TMDB to IMDb resolution error:", e);
+          console.error("[Cinecittà] TMDB to IMDb resolution error:", e);
         }
       }
     }
@@ -647,7 +647,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
         const passwordQuery = proxyPassword ? `&api_password=${encodeURIComponent(proxyPassword)}` : "";
         const extractorUrl = `${proxyUrl}/extractor/video.m3u8?host=city&d=${encodeURIComponent(finalTargetUrl)}&redirect_stream=true${passwordQuery}`;
         const result2 = {
-          name: "CinemaCity",
+          name: "Cinecittà",
           title: movieTitle,
           url: extractorUrl,
           quality: "1080p",
@@ -656,7 +656,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
             notWebReady: true
           }
         };
-        return [formatStream(result2, "CinemaCity")];
+        return [formatStream(result2, "Cinecittà")];
       }
       const cookies = getSessionCookies();
       const response = yield fetchWithTimeout(movieUrl, {
@@ -732,7 +732,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
         "Cookie": cookies
       };
       const result = {
-        name: "CinemaCity",
+        name: "Cinecittà",
         title: movieTitle,
         url: streamUrl,
         quality: "1080p",
@@ -746,10 +746,10 @@ function getStreams(id, type, season, episode, providerContext = null) {
         const detectedQuality = yield checkQualityFromPlaylist(streamUrl, result.headers);
         if (detectedQuality) result.quality = detectedQuality;
       }
-      results.push(formatStream(result, "CinemaCity"));
+      results.push(formatStream(result, "Cinecittà"));
       return results;
     } catch (e) {
-      console.error("[CinemaCity] Error:", e);
+      console.error("[Cinecittà] Error:", e);
       return [];
     }
   });
