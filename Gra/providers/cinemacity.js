@@ -174,7 +174,7 @@ function getStreams(tmdbId, mediaType, season, episode) {
       if (!fileData)
         return [];
       const streams = [];
-      const addStream = (url, 🇮🇹 title, quality) => {
+      const addStream = (url, title, quality) => {
         if (!url || !url.startsWith("http") || url.length < 15)
           return;
         streams.push({
