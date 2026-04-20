@@ -110,9 +110,9 @@
       "id": "easystreams-EinschaltenIn",
       "name": "EinschaltenIn",
       "version": "1.0.19",
-      "description": "Movies and Series from CinemaCity",
+      "description": "Movies and Series from EinschaltenIn",
       "resources": ["stream"],
-      "contentLanguage": ["it"],
+      "contentLanguage": ["de"],
       "formats": ["mp4", "m3u8"],
       "idPrefixes": ["tmdb:", "tt"],
       "repositoryUrl": "https://raw.githubusercontent.com/Bnyro/GermanProviders"'
