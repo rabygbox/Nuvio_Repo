@@ -106,7 +106,6 @@
       "supportedTypes": ["movie", "tv"],
       "enabled": true
     },
-  
     {
         "fileHash": "sha256-ac6374f5a83efe7e4c535120ce269e41d4140ee2d466dcef05e153d28378ce18",
         "apiVersion": 1,
