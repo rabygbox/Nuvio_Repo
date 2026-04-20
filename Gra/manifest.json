@@ -115,5 +115,7 @@
   ]
      "supportedTypes": ["movie", "tv"],
      "enabled": true
+   }
+  ]
 }
   
