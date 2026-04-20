@@ -106,18 +106,14 @@
       "supportedTypes": ["movie", "tv"],
       "enabled": true
     },
-     {
-      "id": "easystreams-EinschaltenIn",
-      "name": "EinschaltenIn",
-      "version": "1.0.19",
-      "description": "Movies and Series from EinschaltenIn",
-      "resources": ["stream"],
-      "contentLanguage": ["de"],
-      "formats": ["mp4", "m3u8"],
-      "idPrefixes": ["tmdb:", "tt"],
-      "repositoryUrl": "https://raw.githubusercontent.com/Bnyro/GermanProviders"'
-      "url": "https://raw.githubusercontent.com/Bnyro/GermanProviders/builds/EinschaltenIn.cs3",
-      "supportedTypes": ["movie", "tv"],
-      "enabled": true
-    }
-]
+    {
+     "name": "German providers repository",
+     "description": "German providers",
+     "manifestVersion": 1.0,
+     "pluginLists": [
+     "https://raw.githubusercontent.com/bnyro/GermanProviders/builds/plugins.json"
+  ]
+     "supportedTypes": ["movie", "tv"],
+     "enabled": true
+}
+  
