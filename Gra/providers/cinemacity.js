@@ -174,7 +174,7 @@ function getStreams(tmdbId, mediaType, season, episode) {
       if (!fileData)
         return [];
       const streams = [];
-      const addStream = (url, title, quality) => {
+      const addStream = (url, 🇮🇹 title, quality) => {
         if (!url || !url.startsWith("http") || url.length < 15)
           return;
         streams.push({
@@ -182,9 +182,8 @@ function getStreams(tmdbId, mediaType, season, episode) {
           title,
           url,
           quality: quality || extractQuality(url),
-          // Hinzugefügte Flaggen für das Plugin
-          flags: ["it", "de", "fr", "es", "en", "globe"],
           headers: __spreadProps(__spreadValues({}, HEADERS), {
+            // Re-include cookies as they may be required for the CDN
             Referer: "https://cinemacity.cc/"
           })
         });
