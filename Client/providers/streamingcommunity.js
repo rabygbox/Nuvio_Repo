@@ -96,7 +96,7 @@ var require_formatter = __commonJS({
       else if (quality === "720p") quality = "\u{1F4BF} HD";
       else if (quality === "576p" || quality === "480p" || quality === "360p" || quality === "240p") quality = "\u{1F4A9} Low Quality";
       else if (!quality || ["auto", "unknown", "unknow"].includes(String(quality).toLowerCase())) quality = "Unknow";
-      let title = `\u{1F4C1} ${stream.title || "Stream"}`;
+      let title = `${stream.title || "Stream"} 🇮🇹`;
       let language = stream.language;
       if (!language) {
         if (stream.name && (stream.name.includes("SUB ITA") || stream.name.includes("SUB"))) language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
