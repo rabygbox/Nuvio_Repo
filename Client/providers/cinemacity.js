@@ -733,7 +733,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
       };
       const result = {
         name: "CinemaCity",
-        title: movieTitle,
+        title: movieTitle 🌐🇮🇹🇩🇪🇫🇷🇪🇸🇰🇷🇯🇵🇷🇺🇵🇹🇵🇱🇹🇷🇺🇸,
         url: streamUrl,
         quality: "1080p",
         type: "direct",
