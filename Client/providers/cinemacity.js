@@ -179,7 +179,7 @@ function getStreams(tmdbId, mediaType, season, episode) {
           return;
         streams.push({
           name: "CinemaCity",
-          title: `${title} 🌐🇺🇸🇮🇹🇩🇪🇫🇷🇵🇹🇯🇵🇰🇷🇵🇱🇷🇺🇹🇷`,
+          title: `${title} 🌐🇨🇿🇺🇸🇮🇹🇩🇪🇫🇷🇪🇸🇵🇹🇯🇵🇰🇷🇵🇱🇷🇺🇵🇭🇮🇳🇭🇺🇮🇩🇹🇭🇹🇷`,
           url,
           quality: quality || extractQuality(url),
           headers: __spreadProps(__spreadValues({}, HEADERS), {
