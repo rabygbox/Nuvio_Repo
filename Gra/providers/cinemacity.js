@@ -174,13 +174,14 @@ function getStreams(tmdbId, mediaType, season, episode) {
       if (!fileData)
         return [];
       const streams = [];
-      const addStream = (url, title, quality) => {
+      const addStream = (url, title, 🇮🇹, quality) => {
         if (!url || !url.startsWith("http") || url.length < 15)
           return;
         streams.push({
           name: "CinemaCity",
-          title 🇮🇹,
+          title,
           url,
+          🇮🇹,
           quality: quality || extractQuality(url),
           headers: __spreadProps(__spreadValues({}, HEADERS), {
             // Re-include cookies as they may be required for the CDN
