@@ -96,9 +96,13 @@ var require_formatter = __commonJS({
       else if (quality === "720p") quality = "\u{1F4BF} HD";
       else if (quality === "576p" || quality === "480p" || quality === "360p" || quality === "240p") quality = "\u{1F4A9} Low Quality";
       else if (!quality || ["auto", "unknown", "unknow"].includes(String(quality).toLowerCase())) quality = "Unknow";
-      
-      let language = stream.language || "\u{1F1EE}\u{1F1F9}"; // Default ITA
-      
+      let title = `\u{1F4C1} ${stream.title || "Stream"}`;
+      let language = stream.language;
+      if (!language) {
+        if (stream.name && (stream.name.includes("SUB ITA") || stream.name.includes("SUB"))) language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
+        else if (stream.title && (stream.title.includes("SUB ITA") || stream.title.includes("SUB"))) language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
+        else language = "\u{1F1EE}\u{1F1F9}";
+      }
       let details = [];
       if (stream.size) details.push(`\u{1F4E6} ${stream.size}`);
       const desc = details.join(" | ");
@@ -138,21 +142,24 @@ var require_formatter = __commonJS({
         delete behaviorHints.notWebReady;
       }
       const finalName = pName;
-
-      // GEÄNDERT: Titel + Flagge direkt zusammen
-      let finalTitle = `${stream.title || "Stream"} 🇮🇹`; 
+      let finalTitle = `\u{1F4C1} ${stream.title || "Stream"}`;
       if (desc) finalTitle += ` | ${desc}`;
-
+      if (language) finalTitle += ` | ${language}`;
       return __spreadProps(__spreadValues({}, stream), {
+        // Keep original properties
         name: finalName,
         title: finalTitle,
+        // Metadata for Stremio UI reconstruction (safer names for RN)
         providerName: pName,
         qualityTag: quality,
         description: desc,
         originalTitle: stream.title || "Stream",
+        // Ensure language is set for Stremio/Nuvio sorting
         language,
+        // Mark as formatted
         _nuvio_formatted: true,
         behaviorHints,
+        // Explicitly ensure root headers are preserved for Nuvio
         headers: finalHeaders
       });
     }
@@ -514,6 +521,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
           title: finalDisplayName,
           url: rawPageUrl,
           easyProxySourceUrl: rawPageUrl,
+          // Stremio addon uses EasyProxy path for StreamingCommunity, so expose default quality here too.
           quality: "1080p",
           type: "direct",
           behaviorHints: {
@@ -544,8 +552,15 @@ function getStreams(id, type, season, episode, providerContext = null) {
           });
           if (playlistResponse.ok) {
             const playlistText = yield playlistResponse.text();
+            const hasItalian = /#EXT-X-MEDIA:TYPE=AUDIO.*(?:LANGUAGE="it"|LANGUAGE="ita"|NAME="Italian"|NAME="Ita")/i.test(playlistText);
             const detected = checkQualityFromText(playlistText);
             if (detected) quality = detected;
+            const originalLanguageItalian = metadata && (metadata.original_language === "it" || metadata.original_language === "ita");
+            if (!hasItalian && !originalLanguageItalian) {
+              console.log(`[StreamingCommunity] No Italian audio found. Checking fallback.`);
+              const fallbackOk = yield hasGuardaFallbackResults(id, normalizedType, resolvedSeason, episode, providerContext);
+              if (!fallbackOk) return [];
+            }
           }
         } catch (e) {
           console.warn(`[StreamingCommunity] Playlist pre-check failed, continuing:`, e);
