@@ -19,6 +19,32 @@
         "name": "EinschaltenIn"
     },
     {
+      "id": "cinemacity",
+      "name": "CinemaCity",
+      "description": "CinemaCity (Multi-Language)",
+      "version": "1.0.0",
+      "author": "Nuvio Team",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/cinemacity.js",
+      "enabled": true,
+      "formats": [
+        "mp4"
+      ],
+      "logo": "https://www.google.com/s2/favicons?domain=cinema-city.pl&sz=128",
+      "contentLanguage": [
+        "en",
+        "hi",
+        "ta",
+        "te",
+        "id",
+        "pl",
+        "ar"
+      ]
+    },
+    {
         "iconUrl": "https://www.google.com/s2/favicons?domain=https://filmpalast.to&sz=%size%",
         "fileHash": "sha256-389b8ba00921d57299d21da2fc714235a09da8fa7558018be54f856cf188d846",
         "apiVersion": 1,
