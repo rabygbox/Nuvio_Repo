@@ -107,9 +107,11 @@
       "enabled": true
     },
     {
+     "id": "easystreams-GermanProviderRepo"
      "name": "German providers repository",
+     "version": 1.0,
      "description": "German providers",
-     "manifestVersion": 1.0,
+     "contentLanguage": ["de"],
      "pluginLists": [
      "https://raw.githubusercontent.com/bnyro/GermanProviders/builds/plugins.json"
   ]
