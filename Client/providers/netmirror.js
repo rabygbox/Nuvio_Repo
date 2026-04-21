@@ -21,6 +21,16 @@ let cookieTimestamp = 0;
 const COOKIE_EXPIRY = 54000000; // 15 hours in milliseconds
 
 // Helper function to make HTTP requests
+function getFlagEmoji(label) {
+    const lang = label.toLowerCase();
+    if (lang.includes('german') || lang.includes('deutsch') || lang === 'de') return '🇩🇪';
+    if (lang.includes('english') || lang.includes('en')) return '🇬🇧';
+    if (lang.includes('italian') || lang === 'it') return '🇮🇹';
+    if (lang.includes('french') || lang === 'fr') return '🇫🇷';
+    if (lang.includes('turkish') || lang === 'tr') return '🇹🇷';
+    if (lang.includes('spanish') || lang === 'es') return '🇪🇸';
+    return ''; // Falls keine Übereinstimmung
+}
 function makeRequest(url, options = {}) {
     return fetch(url, {
         ...options,
@@ -330,13 +340,56 @@ function loadContent(contentId, platform) {
 
 // Get streaming links
 function getStreamingLinks(contentId, title, platform) {
-    console.log(`[NetMirror] Getting streaming links for: ${title}`);
+    console.log(`[NetMirror] Found ${sources.length} streaming sources and ${subtitles.length} subtitle tracks`);
+        return { sources, subtitles }; // Das ist meist schon so vorhanden
+    });
+}
     
-    const ottMap = {
-        'netflix': 'nf',
-        'primevideo': 'pv',
-        'disney': 'hs'
+    // Innerhalb von getStreams, wo die Streams gemappt werden:
+const streams = streamData.sources.map(source => {
+    // 1. Qualitäts-Logik (bleibt gleich wie in deinem Code)
+    let quality = 'HD';
+    const urlQualityMatch = source.url.match(/[?&]q=(\d+p)/i);
+    if (urlQualityMatch) { quality = urlQualityMatch[1]; } 
+    else if (source.quality) { /* ... deine bestehende Logik ... */ }
+
+    // 2. FLAGGEN GENERIEREN
+    // Wir nehmen alle verfügbaren Untertitel-Sprachen und wandeln sie in Flaggen um
+    const flags = streamData.subtitles
+        .map(sub => getFlagEmoji(sub.language))
+        .filter((flag, index, self) => flag !== '' && self.indexOf(flag) === index) // Duplikate entfernen
+        .join('');
+
+    // 3. TITEL ZUSAMMENBAUEN
+    let streamTitle = `${title} ${flags} ${year ? `(${year})` : ''} ${quality}`;
+    
+    if (mediaType === 'tv') {
+        const episodeName = episodeData && episodeData.t ? episodeData.t : '';
+        streamTitle += ` S${seasonNum}E${episodeNum}`;
+        if (episodeName) {
+            streamTitle += ` - ${episodeName}`;
+        }
+    }
+
+    // 4. RETURN (Headers bleiben gleich)
+    const lowerPlatform = (platform || '').toLowerCase();
+    const isNfOrPv = lowerPlatform === 'netflix' || lowerPlatform === 'primevideo';
+    
+    return {
+        name: `NetMirror (${platform.charAt(0).toUpperCase() + platform.slice(1)})`,
+        title: streamTitle, // Hier ist jetzt die Flagge drin!
+        url: source.url,
+        quality: quality,
+        type: source.type.includes('mpegURL') ? 'hls' : 'direct',
+        headers: {
+            "Accept": "application/vnd.apple.mpegurl, video/mp4, */*",
+            "Origin": "https://net51.cc",
+            "Referer": isNfOrPv ? "https://net51.cc/" : "https://net51.cc/tv/home",
+            "Cookie": "hd=on",
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/138.0.7204.156 Mobile/15E148 Safari/604.1"
+        }
     };
+});
     
     const ott = ottMap[platform.toLowerCase()] || 'nf';
     
