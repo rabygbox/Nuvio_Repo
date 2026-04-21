@@ -7425,7 +7425,7 @@ var require_formatter = __commonJS({
         pName = pName.charAt(0).toUpperCase() + pName.slice(1);
       }
       if (pName) {
-        pName = `\u{1F4E1} ${pName}`;
+        pName = `🍿 ${pName}`;
       }
       const behaviorHints = stream.behaviorHints && typeof stream.behaviorHints === "object" ? __spreadValues({}, stream.behaviorHints) : {};
       let finalHeaders = stream.headers;
@@ -7725,7 +7725,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
       const contextKitsuId = providerContext && /^\d+$/.test(String(providerContext.kitsuId || "")) ? String(providerContext.kitsuId) : null;
       if (id.toString().startsWith("kitsu:") || contextKitsuId) {
         const kitsuId = contextKitsuId || id.toString().split(":")[1];
-        const mapped = yield getIdsFromKitsu(kitsuId, season, episode, providerContext);
+        const mapped = yield getIdsFromKitsu(kitsuId, season, episode, providerContext)
         mark("kitsu_mapping_done", { ok: Boolean(mapped && mapped.tmdbId) });
         if (mapped) {
           if (mapped.tmdbId) tmdbId = mapped.tmdbId;
