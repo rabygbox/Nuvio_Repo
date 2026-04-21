@@ -178,8 +178,8 @@ function getStreams(tmdbId, mediaType, season, episode) {
         if (!url || !url.startsWith("http") || url.length < 15)
           return;
         streams.push({
-          name: "🍿 Multi",
-          title: `${title} 🌐`,
+          name: "🍿 •Play",
+          title: `🌐 ${title}`,
           url,
           quality: quality || extractQuality(url),
           headers: __spreadProps(__spreadValues({}, HEADERS), {
