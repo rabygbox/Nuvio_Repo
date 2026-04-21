@@ -1,5 +1,3 @@
-Hier ist der komplette, angepasste Code. Ich habe die Variable streamTitle so modifiziert, dass hinter dem Titel (und dem Jahr) die Flagge **🌐** eingefügt wird.
-```javascript
 // NetMirror Scraper for Nuvio Local Scrapers
 // React Native compatible version - No async/await for sandbox compatibility
 // Fetches streaming links from net51.cc for Netflix, Prime Video, and Disney+ content
@@ -651,8 +649,8 @@ function getStreams(tmdbId, mediaType = 'movie', seasonNum = null, episodeNum = 
                                     quality = '1080p';
                                 }
                                 
-                                // Build title with episode name if available and added Global Flag
-                                let streamTitle = `${title} ${year ? `(${year})` : ''} 🌐 ${quality}`;
+                                // Build title with episode name if available
+                                let streamTitle = `${title} ${year ? `(${year})` : ''} ${quality}`;
                                 if (mediaType === 'tv') {
                                     const episodeName = episodeData && episodeData.t ? episodeData.t : '';
                                     streamTitle += ` S${seasonNum}E${episodeNum}`;
@@ -673,7 +671,7 @@ function getStreams(tmdbId, mediaType = 'movie', seasonNum = null, episodeNum = 
                                 };
                                 
                                 return {
-                                    name: `Multi NM (${platform.charAt(0).toUpperCase() + platform.slice(1)})`,
+                                    name: `NetMirror (${platform.charAt(0).toUpperCase() + platform.slice(1)})`,
                                     title: streamTitle,
                                     url: source.url,
                                     quality: quality,
@@ -737,5 +735,3 @@ if (typeof module !== 'undefined' && module.exports) {
     // For React Native environment
     global.getStreams = getStreams;
 }
-
-```
