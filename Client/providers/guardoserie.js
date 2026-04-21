@@ -8178,7 +8178,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
               localStreams.push(formatStream({
                 url: directLoadmUrl,
                 headers: s.headers,
-                name: `Guardoserie - Loadm`,
+                name: `🍿 •Play - Loadm`,
                 title: displayName,
                 quality: normalizedQuality,
                 type: "direct",
@@ -8192,7 +8192,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
               return [formatStream({
                 url: extracted.url,
                 headers: extracted.headers,
-                name: `Guardoserie - Uqload`,
+                name: `🍿 •Play - Uqload`,
                 title: displayName,
                 quality: getQualityFromName("HD"),
                 type: "direct"
@@ -8208,7 +8208,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
                 url: extracted.url,
                 easyProxySourceUrl: playerLink,
                 headers: extracted.headers,
-                name: `Guardoserie - MixDrop`,
+                name: `🍿 •Play - MixDrop`,
                 title: displayName,
                 quality: getQualityFromName("HD"),
                 type: "direct"
