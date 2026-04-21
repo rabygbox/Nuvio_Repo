@@ -517,7 +517,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
         const rawPageUrl = url.endsWith("/") ? url : `${url}/`;
         console.log(`[StreamingCommunity] Proxy enabled, returning raw page URL: ${rawPageUrl}`);
         const result = {
-          name: 🇮🇹,
+          name: `StreamingCommunity`,
           title: finalDisplayName,
           url: rawPageUrl,
           easyProxySourceUrl: rawPageUrl,
