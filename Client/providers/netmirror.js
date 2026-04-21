@@ -671,8 +671,8 @@ function getStreams(tmdbId, mediaType = 'movie', seasonNum = null, episodeNum = 
                                 };
                                 
                                 return {
-                                    name: `NetMirror (${platform.charAt(0).toUpperCase() + platform.slice(1)})`,
-                                    title: streamTitle,
+                                    name: `Multi NM (${platform.charAt(0).toUpperCase() + platform.slice(1)})`,
+                                    title: streamTitle 🌐,
                                     url: source.url,
                                     quality: quality,
                                     type: source.type.includes('mpegURL') ? 'hls' : 'direct',
