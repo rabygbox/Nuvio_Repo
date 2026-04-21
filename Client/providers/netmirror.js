@@ -352,6 +352,76 @@ function getStreamingLinks(contentId, title, platform) {
             .map(([key, value]) => `${key}=${value}`)
             .join('; ');
 
+        const playlistUrl = `${NETMIRROR_BASE}/tv/playlist.php`;
+
+        return makeRequest(
+            `${playlistUrl}?id=${contentId}&t=${encodeURIComponent(title)}&tm=${getUnixTime()}`,
+            {
+                headers: {
+                    ...BASE_HEADERS,
+                    'Cookie': cookieString,
+                    'Referer': `${NETMIRROR_BASE}/tv/home`
+                }
+            }
+        );
+    }).then(function (response) {
+        return response.json();
+    }).then(function (playlist) {
+        if (!Array.isArray(playlist) || playlist.length === 0) {
+            console.log('[NetMirror] No streaming links found');
+            return { sources: [], subtitles: [] };
+        }
+        
+        const sources = [];
+        const subtitles = [];
+        let globalFlags = [];
+
+        playlist.forEach(item => {
+            // 👉 FLAGS EXTRAHIEREN
+            const flags = extractFlagsFromTracks(item.tracks);
+            if (flags.length > 0) {
+                globalFlags = flags;
+            }
+
+            if (item.sources) {
+                item.sources.forEach(source => {
+                    let fullUrl = source.file.replace('/tv/', '/');
+                    if (!fullUrl.startsWith('/')) fullUrl = '/' + fullUrl;
+                    fullUrl = NETMIRROR_BASE + fullUrl;
+
+                    sources.push({
+                        url: fullUrl,
+                        quality: source.label,
+                        type: source.type || 'application/x-mpegURL'
+                    });
+                });
+            }
+
+            if (item.tracks) {
+                item.tracks
+                    .filter(track => track.kind === 'captions')
+                    .forEach(track => {
+                        let fullSubUrl = track.file;
+                        if (track.file.startsWith('/') && !track.file.startsWith('//')) {
+                            fullSubUrl = NETMIRROR_BASE + track.file;
+                        } else if (track.file.startsWith('//')) {
+                            fullSubUrl = 'https:' + track.file;
+                        }
+                        
+                        subtitles.push({
+                            url: fullSubUrl,
+                            language: track.label
+                        });
+                    });
+            }
+        });
+        
+        console.log(`[NetMirror] Found ${sources.length} streaming sources and ${subtitles.length} subtitle tracks`);
+        
+        return { sources, subtitles, flags: globalFlags };
+    });
+}
+
         // Use the working URL structure from Kotlin version
         const playlistUrl = `${NETMIRROR_BASE}/tv/playlist.php`;
 
