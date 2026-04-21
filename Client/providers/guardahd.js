@@ -7657,7 +7657,7 @@ function getStreams(id, type, season, episode) {
               if (playlistQuality) quality = playlistQuality;
               const normalizedQuality = getQualityFromName(quality);
               streams.push({
-                name: `GuardaHD - MixDrop`,
+                name: `🍿 •Play - MixDrop`,
                 title: displayName,
                 url: extracted.url,
                 easyProxySourceUrl: streamUrl,
@@ -7675,7 +7675,7 @@ function getStreams(id, type, season, episode) {
               if (playlistQuality) quality = playlistQuality;
               const normalizedQuality = getQualityFromName(quality);
               streams.push({
-                name: `GuardaHD - StreamHG`,
+                name: `🍿 •Play - StreamHG`,
                 title: displayName,
                 url: extracted.url,
                 // EasyProxy must receive embed URL, not extracted master playlist URL.
