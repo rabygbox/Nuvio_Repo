@@ -20,7 +20,6 @@ let globalCookie = '';
 let cookieTimestamp = 0;
 const COOKIE_EXPIRY = 54000000; // 15 hours in milliseconds
 
-
 // Helper function to make HTTP requests
 function makeRequest(url, options = {}) {
     return fetch(url, {
@@ -37,39 +36,6 @@ function makeRequest(url, options = {}) {
         return response;
     });
 }
-
-// ... (bis Zeile 23)
-const COOKIE_EXPIRY = 54000000; // 15 hours in milliseconds
-
-// --- HIER EINFÜGEN ---
-function getFlagsFromLanguages(languages) {
-    if (!languages || !Array.isArray(languages)) return '';
-    
-    const flagMap = {
-        'german': '🇩🇪', 'deutsch': '🇩🇪',
-        'italian': '🇮🇹', 'italiano': '🇮🇹',
-        'french': '🇫🇷', 'français': '🇫🇷',
-        'turkish': '🇹🇷', 'türkçe': '🇹🇷',
-        'spanish': '🇪🇸', 'español': '🇪🇸',
-        'english': '🇬🇧',
-        'portuguese': '🇵🇹',
-        'russian': '🇷🇺',
-        'hindi': '🇮🇳',
-        'arabic': '🇸🇦'
-    };
-
-    const flags = languages
-        .map(lang => flagMap[lang.toLowerCase().trim()] || '')
-        .filter(flag => flag !== '');
-    
-    return [...new Set(flags)].join('');
-}
-// --- ENDE EINFÜGEN ---
-
-// Helper function to make HTTP requests
-function makeRequest(url, options = {}) {
-// ...
-
 
 // Get current Unix timestamp
 function getUnixTime() {
@@ -410,33 +376,21 @@ function getStreamingLinks(contentId, title, platform) {
         const sources = [];
         const subtitles = [];
         
-                playlist.forEach(item => {
+        playlist.forEach(item => {
             if (item.sources) {
                 item.sources.forEach(source => {
+                    // Use the working URL construction from Kotlin version
                     let fullUrl = source.file.replace('/tv/', '/');
                     if (!fullUrl.startsWith('/')) fullUrl = '/' + fullUrl;
                     fullUrl = NETMIRROR_BASE + fullUrl;
 
-                    // --- NEU: EXTRAKTION ---
-                    const audioLangs = [];
-                    if (source.label) {
-                        const labelLower = source.label.toLowerCase();
-                        ['German', 'Italian', 'French', 'Turkish', 'English', 'Spanish'].forEach(l => {
-                            if (labelLower.includes(l.toLowerCase())) audioLangs.push(l);
-                        });
-                    }
-                    // -----------------------
-
                     sources.push({
                         url: fullUrl,
                         quality: source.label,
-                        type: source.type || 'application/x-mpegURL',
-                        languages: audioLangs // --- NEU: HIER SPEICHERN ---
+                        type: source.type || 'application/x-mpegURL'
                     });
                 });
             }
-// ...
-
 
             if (item.tracks) {
                 item.tracks
@@ -493,24 +447,7 @@ function findEpisodeId(episodes, season, episode) {
         } else {
             console.log(`[NetMirror] Unknown episode format:`, ep);
             return false;
-            // ... innerhalb von streamData.sources.map(source => { ...
-
-// Flaggen generieren
-const flags = getFlagsFromLanguages(source.languages);
-
-// Build title with flags
-let streamTitle = `${title} ${flags} ${year ? `(${year})` : ''} ${quality}`;
-
-if (mediaType === 'tv') {
-    const episodeName = episodeData && episodeData.t ? episodeData.t : '';
-    streamTitle = `${title} ${flags} S${seasonNum}E${episodeNum}`; // Flaggen auch hier rein
-    if (episodeName) {
-        streamTitle += ` - ${episodeName}`;
-    }
-}
-
         }
-        
         
         console.log(`[NetMirror] Checking episode S${epSeason}E${epNumber} against target S${season}E${episode}`);
         return epSeason === season && epNumber === episode;
