@@ -178,7 +178,7 @@ function getStreams(tmdbId, mediaType, season, episode) {
         if (!url || !url.startsWith("http") || url.length < 15)
           return;
         streams.push({
-          name: "CinemaCity",
+          name: "Multi CC",
           title: `${title} 🌐`,
           url,
           quality: quality || extractQuality(url),
