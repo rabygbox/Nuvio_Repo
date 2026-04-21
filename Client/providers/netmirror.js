@@ -1,5 +1,3 @@
-Hier ist der vollständige, fertig zusammengebaute Code. Ich habe die getFlagsFromLabel-Logik integriert und die Funktionen getStreamingLinks sowie getStreams so angepasst, dass die Flaggen automatisch erkannt und im Titel hinter dem Filmnamen angezeigt werden.
-```javascript
 // NetMirror Scraper for Nuvio Local Scrapers
 // React Native compatible version - No async/await for sandbox compatibility
 // Fetches streaming links from net51.cc for Netflix, Prime Video, and Disney+ content
