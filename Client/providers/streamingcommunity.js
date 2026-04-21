@@ -528,7 +528,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
             notWebReady: false
           }
         };
-        return [formatStream(result, "StreamingCommunity")].filter((s) => s !== null);
+        return [formatStream(result, "ItaliaHost")].filter((s) => s !== null);
       }
       console.log(`[StreamingCommunity] Fetching embed: ${embedUrl}`);
       const embedResponse = yield fetch(embedUrl, {
