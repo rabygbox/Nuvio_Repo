@@ -115,7 +115,7 @@ var require_formatter = __commonJS({
         pName = pName.charAt(0).toUpperCase() + pName.slice(1);
       }
       if (pName) {
-        pName = `\u{1F4E1} ${pName}`;
+        pName = `🍿 •Play`;
       }
       const behaviorHints = stream.behaviorHints && typeof stream.behaviorHints === "object" ? __spreadValues({}, stream.behaviorHints) : {};
       let finalHeaders = stream.headers;
@@ -1092,7 +1092,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
         "Cookie": cookies
       };
       const finalResult = {
-        name: "🍿 •Play",
+        name: "CinemaCity",
         title: movieTitle,
         url: streamUrl,
         quality: "1080p",
