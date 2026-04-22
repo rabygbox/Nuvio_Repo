@@ -107,7 +107,7 @@
       "enabled": true
     },
     {
-      "id": "Italy Server-cinemacity.js",
+      "id": "Italy Server-cinemacity",
       "name": "CinemaCity",
       "version": "1.0.25",
       "description": "Movies and Series from CinemaCity",
@@ -120,7 +120,7 @@
       "enabled": true
     }
     {
-      "id": "Italy Server-cinemacity-D3adlyRocket.js",
+      "id": "Italy Server-cinemacity-D3adlyRocket",
       "name": "cinemacity-D3adlyRocket",
       "version": "1.0.19",
       "description": "Movies and Series from CinemaCity",
