@@ -1,6 +1,6 @@
 {
   "name": "Italy Server",
-  "version": "1.1.57",
+  "version": "1.1.1",
   "scrapers": [
     {
       "id": "Italy Server-guardoserie",
@@ -16,7 +16,7 @@
       "enabled": true
     },
     {
-      "id": "easystreams-guardahd",
+      "id": "Italy Server-guardahd",
       "name": "GuardaHD",
       "version": "1.1.11",
       "description": "Movies from GuardaHD",
@@ -29,7 +29,7 @@
       "enabled": true
     },
         {
-      "id": "easystreams-netmirror",
+      "id": "Italy Server-netmirror",
       "name": "Netmirror",
       "version": "1.1.0",
       "description": "Movies and Series from Netmirror",
@@ -42,7 +42,7 @@
       "enabled": true
     },
     {
-      "id": "easystreams-guardaserie",
+      "id": "Italy Server-guardaserie",
       "name": "Guardaserie",
       "version": "1.1.11",
       "description": "TV Series from Guardaserie",
@@ -55,7 +55,7 @@
       "enabled": true
     },
     {
-      "id": "easystreams-animeunity",
+      "id": "Italy Server-animeunity",
       "name": "AnimeUnity",
       "version": "1.1.8",
       "description": "Anime from AnimeUnity",
@@ -68,7 +68,7 @@
       "enabled": true
     },
     {
-      "id": "easystreams-animeworld",
+      "id": "Italy Server-animeworld",
       "name": "AnimeWorld",
       "version": "1.1.6",
       "description": "Anime from AnimeWorld",
@@ -81,7 +81,7 @@
       "enabled": true
     },
     {
-      "id": "easystreams-animesaturn",
+      "id": "Italy Server-animesaturn",
       "name": "AnimeSaturn",
       "version": "1.0.7",
       "description": "Anime from AnimeSaturn",
@@ -94,7 +94,7 @@
       "enabled": true
     },
     {
-      "id": "easystreams-streamingcommunity",
+      "id": "Italy Server-streamingcommunity",
       "name": "StreamingCommunity",
       "version": "1.1.32",
       "description": "Movies and Series from StreamingCommunity",
@@ -107,7 +107,7 @@
       "enabled": true
     },
     {
-      "id": "easystreams-cinemacity",
+      "id": "Italy Server-cinemacity",
       "name": "CinemaCity",
       "version": "1.0.19",
       "description": "Movies and Series from CinemaCity",
