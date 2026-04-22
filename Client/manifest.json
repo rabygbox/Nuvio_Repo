@@ -118,7 +118,7 @@
       "filename": "providers/cinemacity.js",
       "supportedTypes": ["movie", "tv"],
       "enabled": true
-    }
+    },
     {
       "id": "Italy Server-cinemacityD3adlyRocket",
       "name": "cinemacityD3adlyRocket",
