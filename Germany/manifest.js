@@ -2,7 +2,7 @@
     {
         "fileHash": "sha256-ac6374f5a83efe7e4c535120ce269e41d4140ee2d466dcef05e153d28378ce18",
         "apiVersion": 1,
-        "repositoryUrl": "https://github.com/Bnyro/GermanProviders",
+        "repositoryUrl": "https://github.com/rabygbox/Nuvio_Repo/tree/main/Germany/Providers",
         "fileSize": 14038,
         "status": 1,
         "language": "de",
