@@ -15,7 +15,7 @@
         "version": 6,
         "internalName": "EinschaltenIn",
         "description": "Einschalten ^^",
-        "url": "https://raw.githubusercontent.com/Bnyro/GermanProviders/builds/EinschaltenIn.cs3",
+        "url": "https://github.com/rabygbox/Nuvio_Repo/tree/main/Germany/Providers/Einschalten/EinschaltenIn.cs3",
         "name": "EinschaltenIn"
     },
     {
