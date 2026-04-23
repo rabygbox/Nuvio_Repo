@@ -8234,7 +8234,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
                 quality: normalizedQuality,
                 type: "direct",
                 behaviorHints: s.behaviorHints
-              }, "Guardoserie"));
+              }, "•Play"));
             }
             return localStreams;
           } else if (playerLink.includes("uqload")) {
@@ -8247,7 +8247,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
                 title: displayName,
                 quality: getQualityFromName("HD"),
                 type: "direct"
-              }, "Guardoserie")];
+              }, "•Play")];
             }
           } else if (playerLink.includes("dropload") || playerLink.includes("dr0pstream")) {
             console.log(`[Guardoserie] DropLoad temporarily disabled: ${playerLink}`);
@@ -8263,7 +8263,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
                 title: displayName,
                 quality: getQualityFromName("HD"),
                 type: "direct"
-              }, "Guardoserie")];
+              }, "•Play")];
             }
           } else if (playerLink.includes("supervideo")) {
             console.log(`[Guardoserie] SuperVideo temporarily disabled: ${playerLink}`);
