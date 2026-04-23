@@ -7425,7 +7425,7 @@ var require_formatter = __commonJS({
         pName = pName.charAt(0).toUpperCase() + pName.slice(1);
       }
       if (pName) {
-        pName = `\u{1F4E1} ${pName}`;
+        pName = `${pName}`;
       }
       const behaviorHints = stream.behaviorHints && typeof stream.behaviorHints === "object" ? __spreadValues({}, stream.behaviorHints) : {};
       let finalHeaders = stream.headers;
