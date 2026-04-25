@@ -1,5 +1,11 @@
 #EXTM3U
-#EXTINF:-1 ,CHANNEL NAME
+#EXTINF:-1 ,Rete 4 Zappr
 #KODIPROP:inputstream.adaptive.license_type=clearkey
 #KODIPROP:inputstream.adaptive.license_key=00f9f3c0783536b82247d8ac69f220e2:87854c1823cc1b6d15ac47a531578618
 https://zappr.stream/clearkey/?url=https://live03p-seg.msf.cdn.mediaset.net/live/ch-r4/r4-dash-widevine.isml/manifest.mpd
+
+#EXTM3U
+#EXTINF:-1 ,Rete 4
+#KODIPROP:inputstream.adaptive.license_type=clearkey
+#KODIPROP:inputstream.adaptive.license_key=00f9f3c0783536b82247d8ac69f220e2:87854c1823cc1b6d15ac47a531578618
+https://live03p-seg.msf.cdn.mediaset.net/live/ch-r4/r4-dash-widevine.isml/manifest.mpd
