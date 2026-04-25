@@ -1,43 +1,43 @@
 #EXTM3U url-tvg="https://iptv-epg.org/files/epg-it.xml"
-#EXTINF:-1 tvg-id="rai1.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rai1.png" group-title="Rai",Rai 1
+#EXTINF:-1 tvg-id="rai1.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/rai1.png" group-title="Rai",Rai 1
 https://rai.zappr.stream/rai1.m3u8
-#EXTINF:-1 tvg-id="rai2.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rai2.png" group-title="Rai",Rai 2
+#EXTINF:-1 tvg-id="rai2.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/rai2.png" group-title="Rai",Rai 2
 https://rai.zappr.stream/rai2.m3u8
-#EXTINF:-1 tvg-id="rai3.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rai3.png" group-title="Rai",Rai 3
+#EXTINF:-1 tvg-id="rai3.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/rai3.png" group-title="Rai",Rai 3
 https://rai.zappr.stream/rai3.m3u8
-#EXTINF:-1 tvg-id="Rete4.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rete4.png" group-title="Mediaset",Rete 4
+#EXTINF:-1 tvg-id="Rete4.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/rete4.png" group-title="Mediaset",Rete 4
 https://netplus.zappr.stream/rete4.m3u8
-#EXTINF:-1 tvg-id="Canale5.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/canale5.png" group-title="Mediaset",Canale 5
+#EXTINF:-1 tvg-id="Canale5.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/canale5.png" group-title="Mediaset",Canale 5
 https://netplus.zappr.stream/canale5.m3u8
-#EXTINF:-1 tvg-id="Italia1.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/italia1.png" group-title="Mediaset",Italia 1 
+#EXTINF:-1 tvg-id="Italia1.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/italia1.png" group-title="Mediaset",Italia 1 
 https://netplus.zappr.stream/italia1.m3u8
-#EXTINF:-1 tvg-id="La7.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/la7.png" group-title="Altro",LA7
+#EXTINF:-1 tvg-id="La7.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/la7.png" group-title="Altro",LA7
 https://viamotionhsi.netplus.ch/live/eds/la7/browser-HLS8/la7.m3u8
 #EXTINF:-1 tvg-id="tv8.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/tv8.png" group-title="Altro",TV8
 https://uvotv.zappr.stream/269.m3u8
-#EXTINF:-1 tvg-id="NOVE.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/nove.png" group-title="Altro",Nove
+#EXTINF:-1 tvg-id="NOVE.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/nove.png" group-title="Altro",Nove
 https://viamotionhsi.netplus.ch/live/eds/nove/browser-HLS8/nove.m3u8
-#EXTINF:-1 tvg-id="RSILA1.ch" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rsila1.png" group-title="Altro",RSI La 1
+#EXTINF:-1 tvg-id="RSILA1.ch" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/rsila1.png" group-title="Altro",RSI La 1
 https://viamotionhsi.netplus.ch/live/eds/rsila1hd/browser-HLS8/rsila1hd.m3u8
-#EXTINF:-1 tvg-id="RSILA2.ch" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rsila2.png" group-title="Altro",RSI La 2
+#EXTINF:-1 tvg-id="RSILA2.ch" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/rsila2.png" group-title="Altro",RSI La 2
 https://viamotionhsi.netplus.ch/live/eds/rsila2hd/browser-HLS8/rsila2hd.m3u8
-#EXTINF:-1 tvg-id="RaiGulp.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/raigulp.png" group-title="Rai",Rai Gulp
+#EXTINF:-1 tvg-id="RaiGulp.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/raigulp.png" group-title="Rai",Rai Gulp
 https://viamotionhsi.netplus.ch/live/eds/raigulp/browser-HLS8/raigulp.m3u8
-#EXTINF:-1 tvg-id="K2.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/k2.png" group-title="Mediaset" group-title="Mediaset",K2
+#EXTINF:-1 tvg-id="K2.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/k2.png" group-title="Mediaset" group-title="Mediaset",K2
 https://d1pmpe0hs35ka5.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-39hsskpppgf72/K2_IT.m3u8
-#EXTINF:-1 tvg-id="DMAX.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/dmax.png" group-title="Mediaset",DMAX
+#EXTINF:-1 tvg-id="DMAX.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/dmax.png" group-title="Mediaset",DMAX
 https://viamotionhsi.netplus.ch/live/eds/dmaxitalia/browser-HLS8/dmaxitalia.m3u8
-#EXTINF:-1 tvg-id="-frisbee-.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/frisbee.png" group-title="Mediaset",Frisbee
+#EXTINF:-1 tvg-id="-frisbee-.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/frisbee.png" group-title="Mediaset",Frisbee
 https://d6m7lubks416z.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-zmbstsedxme9s/Frisbee_IT.m3u8
-#EXTINF:-1 tvg-id="Super!.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/super.png" group-title="Mediaset",Super!
+#EXTINF:-1 tvg-id="Super!.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/super.png" group-title="Mediaset",Super!
 https://495c5a85d9074f29acffeaea9e0215eb.msvdn.net/super/super_main/super_main_hbbtv/playlist.m3u8
-#EXTINF:-1 tvg-id="MotorTrend.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/motortrend.png" group-title="Altro",Motor Trend
+#EXTINF:-1 tvg-id="MotorTrend.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/motortrend.png" group-title="Altro",Motor Trend
 https://d205m6k582pec4.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-asg5puyzdtnqu/Motortrend_IT.m3u8
-#EXTINF:-1 tvg-id="GIALLO.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/giallo.png" group-title="Mediaset",Giallo
+#EXTINF:-1 tvg-id="GIALLO.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/giallo.png" group-title="Mediaset",Giallo
 https://d9fqo6nfqlv2h.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-ulukbrgm1n3yb/Giallo_IT.m3u8
-#EXTINF:-1 tvg-id="RealTime.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/realtime.png" group-title="Altro",Real Time
+#EXTINF:-1 tvg-id="RealTime.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/realtime.png" group-title="Altro",Real Time
 https://d3562mgijzx0zq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-kizqtzpvvl3i8/Realtime_IT.m3u8
-#EXTINF:-1 tvg-id="RTL1025.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rtl102-5.png" group-title="Altro",RTL 102.5
+#EXTINF:-1 tvg-id="RTL1025.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/rtl102-5.png" group-title="Altro",RTL 102.5
 https://dd782ed59e2a4e86aabf6fc508674b59.msvdn.net/live/S97044836/tbbP8T1ZRPBL/playlist.m3u8
-#EXTINF:-1 tvg-id="HGTV.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/hgtv.png" group-title="Altro",HGTV
+#EXTINF:-1 tvg-id="HGTV.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/hgtv.png" group-title="Altro",HGTV
 https://d1tidto9vz737l.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-joaw4f4kh2en1/HGTV_IT.m3u8
