@@ -14,7 +14,7 @@ https://netplus.zappr.stream/italia1.m3u8
 #EXTINF:-1 tvg-id="La7.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/la7.png" group-title="Altro",LA7
 https://zappr.stream/clearkey/?url=https://d15umi5iaezxgx.cloudfront.net/LA7/DRM/DASH/Live.mpd&kid=db057321c9224c25a7ccd75d911dd1fc&key=005b948eb397a581d10ff8bb60d19c93
 #EXTINF:-1 tvg-id="tv8.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/tv8.png" group-title="Altro",TV8
-https://uvotv.zappr.stream/269.m3u8
+https://uvotv.zappr.stream/proxy/https://live.uvotv.com/10010/live/hls/topcrime/streams/sessions/22fbb7bd3ae64cd88d1b8d0eb4fc7058/media/playlist-orig.m3u8/fstl=exp=1777197290~acl=%2F10010%2Flive%2Fhls%2Ftopcrime%2F%2A~hmac=9ff5370766d6f41e899480691f41db25492f07874d391e5d83bfec0171764429/0.m3u8
 #EXTINF:-1 tvg-id="NOVE.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/nove.png" group-title="Altro",Nove
 https://viamotionhsi.netplus.ch/live/eds/nove/browser-HLS8/nove.m3u8
 #EXTINF:-1 tvg-id="RSILA1.ch" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/rsila1.png" group-title="Altro",RSI La 1
