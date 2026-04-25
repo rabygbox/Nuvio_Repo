@@ -13,7 +13,7 @@ https://netplus.zappr.stream/canale5.m3u8
 https://netplus.zappr.stream/italia1.m3u8
 #EXTINF:-1 tvg-id="La7.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/la7.png" group-title="Altro",LA7
 https://viamotionhsi.netplus.ch/live/eds/la7/browser-HLS8/la7.m3u8
-#EXTINF:-1 tvg-id="tv8.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/tv8.png" group-title="Altro",TV8
+#EXTINF:-1 tvg-id="tv8.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/tv8.png" group-title="Altro",TV8
 https://uvotv.zappr.stream/269.m3u8
 #EXTINF:-1 tvg-id="NOVE.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/nove.png" group-title="Altro",Nove
 https://viamotionhsi.netplus.ch/live/eds/nove/browser-HLS8/nove.m3u8
