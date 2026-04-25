@@ -6,7 +6,7 @@ https://rai.zappr.stream/rai2.m3u8
 #EXTINF:-1 tvg-id="rai3.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rai3.png" group-title="Rai",Rai 3
 https://rai.zappr.stream/rai3.m3u8
 #EXTINF:-1 tvg-id="Rete4.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rete4.png" group-title="Mediaset",Rete 4
-https://viamotionhsi.netplus.ch/live/eds/rete4/browser-HLS8/rete4.m3u8
+https://netplus.zappr.stream/rete4.m3u8
 #EXTINF:-1 tvg-id="Canale5.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/canale5.png" group-title="Mediaset",Canale 5
 https://viamotionhsi.netplus.ch/live/eds/canale5/browser-HLS8/canale5.m3u8
 #EXTINF:-1 tvg-id="Italia1.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/italia1.png" group-title="Mediaset",Italia 1 
