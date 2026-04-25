@@ -2,7 +2,7 @@
 #EXTINF:-1 tvg-id="rai1.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rai1.png" group-title="Rai",Rai 1
 https://rai.zappr.stream/rai1.m3u8
 #EXTINF:-1 tvg-id="rai2.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rai2.png" group-title="Rai",Rai 2
-https://viamotionhsi.netplus.ch/live/eds/rai2/browser-HLS8/rai2.m3u8
+https://rai.zappr.stream/rai2.m3u8
 #EXTINF:-1 tvg-id="rai3.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rai3.png" group-title="Rai",Rai 3
 https://viamotionhsi.netplus.ch/live/eds/rai3/browser-HLS8/rai3.m3u8
 #EXTINF:-1 tvg-id="Rete4.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rete4.png" group-title="Mediaset",Rete 4
