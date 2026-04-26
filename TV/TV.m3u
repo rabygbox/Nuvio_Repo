@@ -26,7 +26,7 @@ https://viamotionhsi.netplus.ch/live/eds/rsila2hd/browser-HLS8/rsila2hd.m3u8
 #EXTINF:-1 tvg-id="Boing.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/boing.png" group-title="Mediaset",Boing
 https://boing.akamaized.net/6380392800112/eu-central-1/6284318116001/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJob3N0Ijoib3dwbnN1LmVncmVzcy5haGc3NmwiLCJhY2NvdW50X2lkIjoiNjI4NDMxODExNjAwMSIsImVobiI6ImJvaW5nLmFrYW1haXplZC5uZXQiLCJpc3MiOiJibGl2ZS1wbGF5YmFjay1zb3VyY2UtYXBpIiwic3ViIjoicGF0aG1hcHRva2VuIiwiYXVkIjpbIjYyODQzMTgxMTYwMDEiXSwianRpIjoiNjM4MDM5MjgwMDExMiJ9.0RWQ0yZrauU0cHSnbpBYhgyRPeq1Lyw6nOn_fo7_cg0/playlist-hls.m3u8
 #EXTINF:-1 tvg-id="RaiGulp.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/raigulp.png" group-title="Rai",Rai Gulp
-https://viamotionhsi.netplus.ch/live/eds/raigulp/browser-HLS8/raigulp.m3u8
+https://rai.zappr.stream/raigulp.m3u8
 #EXTINF:-1 tvg-id="K2.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/k2.png" group-title="Mediaset" group-title="Mediaset",K2
 https://d1pmpe0hs35ka5.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-39hsskpppgf72/K2_IT.m3u8
 #EXTINF:-1 tvg-id="DMAX.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/dmax.png" group-title="Mediaset",DMAX
