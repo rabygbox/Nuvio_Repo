@@ -1,13 +1,12 @@
 {
-  "id": "it.lisa.mixdrop",
-  "version": "1.0.5",
-  "name": "Mixdrop Personal Lisa",
-  "description": "I miei film caricati su Mixdrop",
-  "resources": ["stream"],
+  "id": "org.lisa.mixdrop",
+  "version": "1.0.9",
+  "name": "Mixdrop Personal",
+  "description": "I miei file personali",
   "types": ["movie"],
+  "resources": ["stream"],
+  "catalogs": [],
   "idPrefixes": ["tt"],
-  "behaviorHints": {
-    "configurable": true,
-    "configurationRequired": false
-  }
+  "background": "https://mxdrop.sx/f/dk3rro1mb774mp9",
+  "contactEmail": "lisa.fremd@web.de"
 }
