@@ -1,14 +1,13 @@
 {
-      "id": "mixdrop",
-      "name": "mixdrop",
-      "version": "1.0.0",
-      "description": "Movies and Series from mixdrop",
-      "resources": ["stream"],
-      "contentLanguage": ["it"],
-      "formats": ["mp4", "m3u8"],
-      "idPrefixes": ["tmdb:", "tt"],
-      "supportedTypes": ["movie", "tv"],
-      "enabled": true
-    }
-  ]
+  "id": "it.lisa.mixdrop",
+  "version": "1.0.5",
+  "name": "Mixdrop Personal Lisa",
+  "description": "I miei film caricati su Mixdrop",
+  "resources": ["stream"],
+  "types": ["movie"],
+  "idPrefixes": ["tt"],
+  "behaviorHints": {
+    "configurable": true,
+    "configurationRequired": false
+  }
 }
