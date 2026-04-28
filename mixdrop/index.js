@@ -1,55 +1,42 @@
 /**
- * PLUGIN PER NUVIO - MIXDROP PERSONAL HOSTING
- * Autore: Ai Collaborator (per Lisa)
+ * PLUGIN MIXDROP PER NUVIO 
+ * Configurato per: lisa.fremd@web.de
  */
 
 const CONFIG = {
     EMAIL: "lisa.fremd@web.de",
     API_KEY: "vqLZxWJCj2rfi4DL6",
-    BASE_URL: "https://api.mixdrop.co"
+    BASE_URL: "https://api.mixdrop.ag" // Usiamo questo per le chiamate API
 };
 
-// 1. MOTORE DI RICERCA (Cerca i file nel tuo account)
+// FUNZIONE DI RICERCA
 async function searchFiles(query) {
-    const searchUrl = `${CONFIG.BASE_URL}/files?email=${CONFIG.EMAIL}&key=${CONFIG.API_KEY}&search=${encodeURIComponent(query)}`;
-    
+    const url = `${CONFIG.BASE_URL}/files?email=${CONFIG.EMAIL}&key=${CONFIG.API_KEY}&search=${encodeURIComponent(query)}`;
     try {
-        const response = await fetch(searchUrl);
+        const response = await fetch(url);
         const data = await response.json();
-
-        if (data.success && data.result) {
+        if (data.success) {
             return data.result.map(file => ({
-                title: file.title,
-                ref: file.fileref, // Identificativo unico del file
-                size: file.size,
-                thumbnail: file.thumb || "" 
+                name: file.title,
+                id: file.fileref,
+                img: file.thumb
             }));
         }
-        return [];
-    } catch (error) {
-        console.error("Errore Mixdrop Search:", error);
-        return [];
-    }
+    } catch (e) { return []; }
 }
 
-// 2. RESOLVER (Estrae il link video "puro" per Nuvio)
-async function getStreamUrl(fileRef) {
-    const infoUrl = `${CONFIG.BASE_URL}/fileinfo?email=${CONFIG.EMAIL}&key=${CONFIG.API_KEY}&ref=${fileRef}`;
-    
+// FUNZIONE DI RIPRODUZIONE (ESTRAZIONE LINK PURO)
+async function getStream(id) {
+    // Usiamo l'endpoint che hai appena testato con successo!
+    const url = `${CONFIG.BASE_URL}/fileinfo?email=${CONFIG.EMAIL}&key=${CONFIG.API_KEY}&ref=${id}`;
     try {
-        const response = await fetch(infoUrl);
+        const response = await fetch(url);
         const data = await response.json();
-
-        if (data.success && data.result && data.result.url) {
-            // Restituisce l'URL diretto al file MP4
+        if (data.success && data.result.url) {
+            // Restituisce il link che Nuvio userà per il player
             return data.result.url;
         }
-    } catch (error) {
-        console.error("Errore estrazione link:", error);
-    }
-    return null;
+    } catch (e) { return null; }
 }
 
-// 3. ESPOSIZIONE PER NUVIO
-// Questa parte permette a Nuvio di "vedere" le funzioni sopra
-export { searchFiles, getStreamUrl };
+export { searchFiles, getStream };
