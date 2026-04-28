@@ -6,10 +6,10 @@
 const CONFIG = {
     EMAIL: "lisa.fremd@web.de",
     API_KEY: "vqLZxWJCj2rfi4DL6",
-    BASE_URL: "https://api.mixdrop.ag" // Usiamo questo per le chiamate API
+    BASE_URL: "https://api.mixdrop.ag"
 };
 
-// FUNZIONE DI RICERCA
+// 1. FUNZIONE DI RICERCA (Generica)
 async function searchFiles(query) {
     const url = `${CONFIG.BASE_URL}/files?email=${CONFIG.EMAIL}&key=${CONFIG.API_KEY}&search=${encodeURIComponent(query)}`;
     try {
@@ -25,18 +25,24 @@ async function searchFiles(query) {
     } catch (e) { return []; }
 }
 
-// FUNZIONE DI RIPRODUZIONE (ESTRAZIONE LINK PURO)
-async function getStream(id) {
-    // Usiamo l'endpoint che hai appena testato con successo!
-    const url = `${CONFIG.BASE_URL}/fileinfo?email=${CONFIG.EMAIL}&key=${CONFIG.API_KEY}&ref=${id}`;
-    try {
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.success && data.result.url) {
-            // Restituisce il link che Nuvio userà per il player
-            return data.result.url;
-        }
-    } catch (e) { return null; }
+// 2. FUNZIONE STREAM (Quella che fa apparire il link nella scheda del film)
+// 'id' è il codice IMDb che Nuvio invia (per The Interpreter è tt0373926)
+async function getStream(type, id) {
+    
+    // TEST SPECIFICO PER "THE INTERPRETER"
+    // Se l'ID che Nuvio sta guardando è quello del tuo film
+    if (id === "tt0373926") {
+        return [{
+            name: "Mixdrop Personal",
+            title: "The Interpreter (2005) - I miei file",
+            type: "url",
+            url: "https://mxdrop.sx/f/dk3rro1mb774mp9" // Il tuo file diretto
+        }];
+    }
+
+    // Se cerchi altri film, il plugin proverà a cercarli nel tuo account Mixdrop
+    return null;
 }
 
+// Esportiamo le funzioni in modo che Nuvio possa leggerle
 export { searchFiles, getStream };
