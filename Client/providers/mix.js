@@ -1,48 +1,37 @@
-/**
- * PLUGIN MIXDROP PER NUVIO 
- * Configurato per: lisa.fremd@web.de
- */
+(function() {
+    // Identificativi del tuo film
+    const movieTitle = "The Interpreter";
+    const mixdropLink = "https://mxdrop.sx/e/dk3rro1mb774mp9";
 
-const CONFIG = {
-    EMAIL: "lisa.fremd@web.de",
-    API_KEY: "vqLZxWJCj2rfi4DL6",
-    BASE_URL: "https://api.mixdrop.ag"
-};
+    // Questa funzione cerca di capire se sei nella pagina del film giusto
+    function injectMixdrop() {
+        // Cerchiamo il titolo nella pagina di Nuvio
+        const pageTitle = document.body.innerText;
 
-// 1. FUNZIONE DI RICERCA (Generica)
-async function searchFiles(query) {
-    const url = `${CONFIG.BASE_URL}/files?email=${CONFIG.EMAIL}&key=${CONFIG.API_KEY}&search=${encodeURIComponent(query)}`;
-    try {
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.success) {
-            return data.result.map(file => ({
-                name: file.title,
-                id: file.fileref,
-                img: file.thumb
-            }));
+        if (pageTitle.includes(movieTitle)) {
+            // Cerchiamo il contenitore dove Nuvio mette i provider
+            // Nota: Nuvio usa spesso classi come 'stream-list' o 'providers'
+            const providerList = document.querySelector('.stream-list') || document.querySelector('.providers-container') || document.body;
+
+            // Se troviamo la lista e non abbiamo già aggiunto il tasto
+            if (providerList && !document.getElementById('mixdrop-lisa')) {
+                const btn = document.createElement('div');
+                btn.id = 'mixdrop-lisa';
+                btn.innerHTML = `
+                    <div style="background: #ff4500; color: white; padding: 10px; margin: 5px; border-radius: 5px; cursor: pointer; font-weight: bold; text-align: center;">
+                        🚀 PLAY SU MIXDROP (Personal)
+                    </div>
+                `;
+                btn.onclick = function() {
+                    window.open(mixdropLink, '_blank');
+                };
+                
+                // Inseriamo il tasto all'inizio della lista
+                providerList.prepend(btn);
+            }
         }
-    } catch (e) { return []; }
-}
-
-// 2. FUNZIONE STREAM (Quella che fa apparire il link nella scheda del film)
-// 'id' è il codice IMDb che Nuvio invia (per The Interpreter è tt0373926)
-async function getStream(type, id) {
-    
-    // TEST SPECIFICO PER "THE INTERPRETER"
-    // Se l'ID che Nuvio sta guardando è quello del tuo film
-    if (id === "tt0373926") {
-        return [{
-            name: "Mixdrop Personal",
-            title: "The Interpreter (2005) - I miei file",
-            type: "url",
-            url: "https://mxdrop.sx/f/dk3rro1mb774mp9" // Il tuo file diretto
-        }];
     }
 
-    // Se cerchi altri film, il plugin proverà a cercarli nel tuo account Mixdrop
-    return null;
-}
-
-// Esportiamo le funzioni in modo che Nuvio possa leggerle
-export { searchFiles, getStream };
+    // Eseguiamo il controllo ogni 2 secondi per essere sicuri che la pagina sia caricata
+    setInterval(injectMixdrop, 2000);
+})();
