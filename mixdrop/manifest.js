@@ -19,5 +19,5 @@
       "name": "Mixdrop Library"
     }
   ],
-  "idPrefixes": ["dk"]
+  "idPrefixes": ["tt"]
 }
