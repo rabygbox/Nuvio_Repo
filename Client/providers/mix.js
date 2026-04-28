@@ -1,37 +1,41 @@
+// NUVIO PLUGIN - VERSIONE ANDROID DIRETTA
 (function() {
-    // Identificativi del tuo film
-    const movieTitle = "The Interpreter";
-    const mixdropLink = "https://mxdrop.sx/e/dk3rro1mb774mp9";
+    // Il link al tuo film
+    const MIO_VIDEO = "https://mxdrop.sx/e/dk3rro1mb774mp9";
+    const TITOLO_FILM = "The Interpreter";
 
-    // Questa funzione cerca di capire se sei nella pagina del film giusto
-    function injectMixdrop() {
-        // Cerchiamo il titolo nella pagina di Nuvio
-        const pageTitle = document.body.innerText;
+    function creaPulsante() {
+        // Se il pulsante esiste già, non fare nulla
+        if (document.getElementById('lisa-mixdrop-btn')) return;
 
-        if (pageTitle.includes(movieTitle)) {
-            // Cerchiamo il contenitore dove Nuvio mette i provider
-            // Nota: Nuvio usa spesso classi come 'stream-list' o 'providers'
-            const providerList = document.querySelector('.stream-list') || document.querySelector('.providers-container') || document.body;
+        // Controlla se nella pagina c'è scritto "The Interpreter"
+        if (document.body.innerText.includes(TITOLO_FILM)) {
+            
+            // Crea un contenitore per il tasto
+            const div = document.createElement('div');
+            div.id = 'lisa-mixdrop-btn';
+            div.style.position = 'fixed';
+            div.style.bottom = '20px';
+            div.style.right = '20px';
+            div.style.zIndex = '9999';
+            div.style.backgroundColor = '#E50914'; // Rosso stile Netflix
+            div.style.color = 'white';
+            div.style.padding = '15px';
+            div.style.borderRadius = '50px';
+            div.style.fontWeight = 'bold';
+            div.style.boxShadow = '0px 4px 10px rgba(0,0,0,0.5)';
+            div.style.cursor = 'pointer';
+            div.innerText = '▶️ PLAY MIXDROP';
 
-            // Se troviamo la lista e non abbiamo già aggiunto il tasto
-            if (providerList && !document.getElementById('mixdrop-lisa')) {
-                const btn = document.createElement('div');
-                btn.id = 'mixdrop-lisa';
-                btn.innerHTML = `
-                    <div style="background: #ff4500; color: white; padding: 10px; margin: 5px; border-radius: 5px; cursor: pointer; font-weight: bold; text-align: center;">
-                        🚀 PLAY SU MIXDROP (Personal)
-                    </div>
-                `;
-                btn.onclick = function() {
-                    window.open(mixdropLink, '_blank');
-                };
-                
-                // Inseriamo il tasto all'inizio della lista
-                providerList.prepend(btn);
-            }
+            div.onclick = function() {
+                // Apre il video direttamente
+                window.location.href = MIO_VIDEO;
+            };
+
+            document.body.appendChild(div);
         }
     }
 
-    // Eseguiamo il controllo ogni 2 secondi per essere sicuri che la pagina sia caricata
-    setInterval(injectMixdrop, 2000);
+    // Controlla ogni secondo se siamo sulla pagina giusta
+    setInterval(creaPulsante, 1000);
 })();
