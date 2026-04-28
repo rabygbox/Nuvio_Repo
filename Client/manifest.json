@@ -29,15 +29,15 @@
       "enabled": true
     },
         {
-      "id": "Italy Server-netmirror",
-      "name": "Netmirror",
+      "id": "Italy Server-mix",
+      "name": "MixDrop",
       "version": "1.1.0",
-      "description": "Movies and Series from Netmirror",
+      "description": "Movies and Series from MixDrop",
       "resources": ["stream"],
       "contentLanguage": ["it"],
       "formats": ["mp4", "m3u8"],
       "idPrefixes": ["tmdb:", "tt"],
-      "filename": "providers/netmirror.js",
+      "filename": "providers/mix.js",
       "supportedTypes": ["movie", "tv"],
       "enabled": true
     },
