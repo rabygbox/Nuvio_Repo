@@ -1,0 +1,17 @@
+{
+  "name": "cb01-nuvio-provider",
+  "version": "1.0.0",
+  "description": "Plugin CB01 per Nuvio e Cinemate",
+  "main": "cb01-addon.js",
+  "dependencies": {
+    "stremio-addon-sdk": "^1.6.0",
+    "axios": "^1.4.0",
+    "cheerio": "^1.0.0-rc.12"
+  },
+  "scripts": {
+    "start": "node cb01-addon.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
