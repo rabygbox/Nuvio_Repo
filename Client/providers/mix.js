@@ -1,54 +1,98 @@
-/**
- * PLUGIN MIXDROP PER NUVIO 
- * Configurato per: lisa.fremd@web.de
- */
+const axios = require('axios');
+const cheerio = require('cheerio');
 
-const CONFIG = {
-    MOVIE_ID: "tt0373926", // ID Cinemeta per 'The Interpreter'
-    STREAM_URL: "https://mxdrop.sx/e/dk3rro1mb774mp9" // Il tuo link file
+const BASE_URL = 'https://cb01uno.run';
+const HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+    'Referer': BASE_URL
 };
 
-// --- FUNZIONE PER IL PLAYER DI NUVIO ---
-export async function getStream(type, id) {
-    if (type === "movie" && id === CONFIG.MOVIE_ID) {
-        return {
-            streams: [
-                {
-                    name: "MIXDROP\nLISA",
-                    title: "The Interpreter (2005)\nHD - Personal Stream",
-                    url: CONFIG.STREAM_URL
-                }
-            ]
-        };
+/**
+ * Funzione di ricerca specifica per Cinemate
+ * Cerca il titolo su CB01 e restituisce l'URL della pagina corretta
+ */
+async function searchOnCB01(title) {
+    try {
+        // Pulizia titolo per la ricerca
+        const searchUrl = `${BASE_URL}/?s=${encodeURIComponent(title)}`;
+        const { data } = await axios.get(searchUrl, { headers: HEADERS });
+        const $ = cheerio.load(data);
+        
+        // Prendiamo il primo risultato della ricerca che corrisponde al titolo
+        const firstResult = $('.post-video a').first().attr('href');
+        return firstResult || null;
+    } catch (e) {
+        return null;
     }
-    return { streams: [] };
 }
 
-// --- FUNZIONE PER L'INTERFACCIA (INIEZIONE TASTO) ---
-(function() {
-    function injectButton() {
-        // Controlla se siamo nella scheda di The Interpreter
-        if (window.location.href.includes(CONFIG.MOVIE_ID) || document.body.innerText.includes("The Interpreter")) {
+/**
+ * Resolver per MIXDROP
+ */
+async function resolveMixdrop(url) {
+    try {
+        const { data } = await axios.get(url, { headers: { ...HEADERS, 'Referer': 'https://mixdrop.co/' } });
+        const packed = data.match(/eval\(function\(p,a,c,k,e,d\).+?\}\((.+?)\)\)/);
+        if (packed) {
+            const dict = packed[1].split(',').pop().split('|');
+            const file = dict.find(v => v.includes('mp4') || v.length > 20);
+            const srv = dict.find(v => v.startsWith('s-'));
+            if (file && srv) return `https://${srv}.delivery.mixdrop.co/hls/${file}.mp4`;
+        }
+        return null;
+    } catch (e) { return null; }
+}
+
+/**
+ * Resolver per VOE
+ */
+async function resolveVoe(url) {
+    try {
+        const { data } = await axios.get(url, { headers: HEADERS });
+        const match = data.match(/'hls':\s*'([^']+)'/);
+        return match ? match[1] : null;
+    } catch (e) { return null; }
+}
+
+/**
+ * ESPORTAZIONE PLUGIN PER NUVIO/CINEMATE
+ */
+const CinemateCB01Plugin = {
+    // Questa funzione viene chiamata da Cinemate quando l'utente clicca su un film
+    async getStreamsByMetadata(metadata) {
+        const title = metadata.title; // Cinemate passa il titolo qui
+        console.log(`Ricerca flussi per: ${title}`);
+
+        // 1. Trova la pagina del film su CB01
+        const moviePageUrl = await searchOnCB01(title);
+        if (!moviePageUrl) return [];
+
+        // 2. Estrai i link dalla pagina
+        const { data } = await axios.get(moviePageUrl, { headers: HEADERS });
+        const $ = cheerio.load(data);
+        const streams = [];
+        const rawLinks = [];
+
+        $('.list-server a, .v_link').each((i, el) => {
+            rawLinks.push({ name: $(el).text().trim(), url: $(el).attr('href') });
+        });
+
+        // 3. Risolvi i link (Mixdrop e Voe)
+        for (const item of rawLinks) {
+            let directUrl = null;
+            if (item.url.includes('voe.sx')) directUrl = await resolveVoe(item.url);
+            else if (item.url.includes('mixdrop')) directUrl = await resolveMixdrop(item.url);
             
-            // Cerchiamo dove Nuvio mette i provider (StreamingCommunity, etc)
-            const container = document.querySelector('.streams-list') || 
-                              document.querySelector('.providers-container') || 
-                              document.querySelector('[class*="Stream"]');
-
-            if (container && !document.getElementById('lisa-btn')) {
-                const btn = document.createElement('div');
-                btn.id = 'lisa-btn';
-                btn.style = "background:#ff4500; color:white; padding:12px; margin:10px; border-radius:8px; text-align:center; font-weight:bold; cursor:pointer; border:1px solid white;";
-                btn.innerHTML = "▶️ GUARDA SU MIXDROP (LISA)";
-                
-                btn.onclick = function() {
-                    window.location.href = CONFIG.STREAM_URL;
-                };
-
-                container.prepend(btn);
+            if (directUrl) {
+                streams.push({
+                    name: `CB01 - ${item.name || 'HD Server'}`,
+                    url: directUrl,
+                    type: 'direct'
+                });
             }
         }
+        return streams;
     }
-    // Controlla la pagina ogni 2 secondi
-    setInterval(injectButton, 2000);
-})();
+};
+
+module.exports = CinemateCB01Plugin;
