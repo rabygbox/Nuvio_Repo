@@ -17,6 +17,8 @@ https://zappr.stream/clearkey/?url=https://d15umi5iaezxgx.cloudfront.net/LA7/DRM
 https://uvotv.zappr.stream/269.m3u8
 #EXTINF:-1 tvg-id="NOVE.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/nove.png" group-title="Altro",Nove
 https://viamotionhsi.netplus.ch/live/eds/nove/browser-HLS8/nove.m3u8
+#EXTINF:-1 tvg-id="topcrime.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/topcrime.png" group-title="Mediaset",Top Crime
+https://uvotv.zappr.stream/86.m3u8
 #EXTINF:-1 tvg-id="RSILA1.ch" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/rsila1.png" group-title="Altro",RSI La 1
 https://viamotionhsi.netplus.ch/live/eds/rsila1hd/browser-HLS8/rsila1hd.m3u8
 #EXTINF:-1 tvg-id="RSILA2.ch" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/rsila2.png" group-title="Altro",RSI La 2
