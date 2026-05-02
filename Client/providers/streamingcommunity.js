@@ -1,3 +1,5 @@
+// --- StreamingCommunity Plugin Full Update ---
+
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
 var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
@@ -36,18 +38,10 @@ var __commonJS = (cb, mod) => function __require() {
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
+      try { step(generator.next(value)); } catch (e) { reject(e); }
     };
     var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
+      try { step(generator.throw(value)); } catch (e) { reject(e); }
     };
     var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
     step((generator = generator.apply(__this, __arguments)).next());
@@ -57,35 +51,17 @@ var __async = (__this, __arguments, generator) => {
 // src/formatter.js
 var require_formatter = __commonJS({
   "src/formatter.js"(exports2, module2) {
-    function normalizePlaybackHeaders(headers) {
-      if (!headers || typeof headers !== "object") return headers;
-      const normalized = {};
-      for (const [key, value] of Object.entries(headers)) {
-        if (value == null) continue;
-        const lowerKey = String(key).toLowerCase();
-        if (lowerKey === "user-agent") normalized["User-Agent"] = value;
-        else if (lowerKey === "referer" || lowerKey === "referrer") normalized["Referer"] = value;
-        else if (lowerKey === "origin") normalized["Origin"] = value;
-        else if (lowerKey === "accept") normalized["Accept"] = value;
-        else if (lowerKey === "accept-language") normalized["Accept-Language"] = value;
-        else normalized[key] = value;
-      }
-      return normalized;
-    }
     function formatStream2(stream, providerName) {
-      let quality = stream.quality || "1080p";
-      let title = `\u{1F4C1} ${stream.title || "Stream"}`;
-      let language = stream.language || "🇮🇹";
-      const behaviorHints = stream.behaviorHints && typeof stream.behaviorHints === "object" ? __spreadValues({}, stream.behaviorHints) : {};
-      let finalHeaders = normalizePlaybackHeaders(stream.headers);
-      if (finalHeaders) {
-        behaviorHints.proxyHeaders = { request: finalHeaders };
-        behaviorHints.headers = finalHeaders;
-      }
+      const behaviorHints = stream.behaviorHints || {};
+      const headers = stream.headers || {};
+      
       return __spreadProps(__spreadValues({}, stream), {
-        name: `🍿 •Play`,
-        title: `${title} | ${quality} | ${language}`,
-        behaviorHints
+        name: `🍿 SC • Play`,
+        title: `\u{1F4C1} ${stream.title || "StreamingCommunity"} | 1080p | 🇮🇹`,
+        behaviorHints: __spreadValues(behaviorHints, {
+          proxyHeaders: { request: headers },
+          notWebReady: false
+        })
       });
     }
     module2.exports = { formatStream: formatStream2 };
@@ -102,63 +78,79 @@ var TMDB_API_KEY = "68e094699525b18a70bab2f86b1fa706";
 var USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 function getCommonHeaders() {
+  const baseUrl = getStreamingCommunityBaseUrl();
   return {
     "User-Agent": USER_AGENT,
-    "Referer": `${getStreamingCommunityBaseUrl()}/`,
+    "Referer": `${baseUrl}/`,
     "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "it-IT,it;q=0.9"
+    "X-Requested-With": "XMLHttpRequest"
   };
 }
 
-function extractMasterPlaylistFromEmbedHtml(html) {
+function extractPlaylistData(html) {
   if (!html) return null;
-  const tokenMatch = html.match(/['"]token['"]\s*:\s*['"]([^'"]+)['"]/i);
-  const expiresMatch = html.match(/['"]expires['"]\s*:\s*['"]([^'"]+)['"]/i);
-  const urlMatch = html.match(/['"]url['"]\s*:\s*['"]([^'"]+)['"]/i);
+  // Verbesserte Regex für verschiedene Anführungszeichen und Escaping
+  const token = html.match(/['"]token['"]\s*[:=]\s*['"]([^'"]+)['"]/i);
+  const expires = html.match(/['"]expires['"]\s*[:=]\s*['"]([^'"]+)['"]/i);
+  const url = html.match(/['"]url['"]\s*[:=]\s*['"]([^'"]+)['"]/i);
   
-  if (!tokenMatch || !expiresMatch || !urlMatch) return null;
+  if (!token || !expires || !url) return null;
+  
   return {
-    token: tokenMatch[1],
-    expires: expiresMatch[1],
-    url: urlMatch[1].replace(/\\/g, "")
+    token: token[1],
+    expires: expires[1],
+    url: url[1].replace(/\\/g, "")
   };
 }
 
 async function getTmdbId(imdbId, type) {
+  const endpoint = type === "movie" ? "movie" : "tv";
   const url = `https://api.themoviedb.org/3/find/${imdbId}?api_key=${TMDB_API_KEY}&external_source=imdb_id`;
   try {
     const res = await fetch(url);
     const data = await res.json();
     const results = type === "movie" ? data.movie_results : data.tv_results;
-    return results?.[0]?.id?.toString() || null;
+    return results && results.length > 0 ? results[0].id.toString() : null;
   } catch (e) { return null; }
 }
 
 async function getStreams(id, type, season, episode) {
   const baseUrl = getStreamingCommunityBaseUrl();
-  let tmdbId = id.includes("tt") ? await getTmdbId(id, type === "series" ? "tv" : type) : id.replace("tmdb:", "");
+  const normalizedType = (type === "series" || type === "tv") ? "tv" : "movie";
+  
+  // ID Auflösung
+  let tmdbId = id.toString().replace("tmdb:", "");
+  if (tmdbId.startsWith("tt")) {
+    tmdbId = await getTmdbId(tmdbId, normalizedType);
+  }
   
   if (!tmdbId) return [];
 
-  const apiUrl = type === "movie" 
+  const apiUrl = normalizedType === "movie" 
     ? `${baseUrl}/api/movie/${tmdbId}` 
     : `${baseUrl}/api/tv/${tmdbId}/${season}/${episode}`;
 
   try {
     const response = await fetch(apiUrl, { headers: getCommonHeaders() });
+    if (!response.ok) return [];
+    
     const apiPayload = await response.json();
-    let embedUrl = apiPayload.src || apiPayload.url;
+    // Flexiblerer Zugriff auf die Embed-URL
+    let embedUrl = apiPayload.src || apiPayload.url || (apiPayload.data ? apiPayload.data.link : null);
+    
     if (!embedUrl) return [];
     if (embedUrl.startsWith("/")) embedUrl = baseUrl + embedUrl;
 
-    const embedRes = await fetch(embedUrl, { headers: { "User-Agent": USER_AGENT, "Referer": baseUrl } });
+    const embedRes = await fetch(embedUrl, { 
+      headers: { "User-Agent": USER_AGENT, "Referer": baseUrl } 
+    });
     const embedHtml = await embedRes.text();
-    const playlistData = extractMasterPlaylistFromEmbedHtml(embedHtml);
+    const playlist = extractPlaylistData(embedHtml);
 
-    if (playlistData) {
-      const finalUrl = playlistData.url.startsWith("http") 
-        ? `${playlistData.url}?token=${playlistData.token}&expires=${playlistData.expires}&h=1`
-        : `${baseUrl}${playlistData.url}?token=${playlistData.token}&expires=${playlistData.expires}&h=1`;
+    if (playlist) {
+      const finalUrl = playlist.url.startsWith("http") 
+        ? `${playlist.url}?token=${playlist.token}&expires=${playlist.expires}&h=1`
+        : `${baseUrl}${playlist.url}?token=${playlist.token}&expires=${playlist.expires}&h=1`;
 
       const streamHeaders = {
         "User-Agent": USER_AGENT,
@@ -168,14 +160,14 @@ async function getStreams(id, type, season, episode) {
 
       const result = {
         url: finalUrl,
-        headers: streamHeaders,
-        behaviorHints: { notWebReady: false }
+        title: "Stream",
+        headers: streamHeaders
       };
 
       return [formatStream(result, "StreamingCommunity")];
     }
-  } catch (e) {
-    console.error("StreamingCommunity Error:", e);
+  } catch (error) {
+    console.error("[SC Plugin] Critical Error:", error);
   }
   return [];
 }
