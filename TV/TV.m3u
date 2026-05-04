@@ -12,7 +12,7 @@ https://netplus.zappr.stream/canale5.m3u8
 #EXTINF:-1 tvg-id="Italia1.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/italia1.png" group-title="Mediaset",Italia 1 
 https://netplus.zappr.stream/italia1.m3u8
 #EXTINF:-1 tvg-id="La7.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/la7.png" group-title="Altro",LA7
-https://zappr.stream/clearkey/?url=https://d15umi5iaezxgx.cloudfront.net/LA7/DRM/DASH/Live.mpd&kid=db057321c9224c25a7ccd75d911dd1fc&key=005b948eb397a581d10ff8bb60d19c93
+https://d15umi5iaezxgx.cloudfront.net/LA7/DRM/DASH/Live.mpd&kid=db057321c9224c25a7ccd75d911dd1fc&key=005b948eb397a581d10ff8bb60d19c93
 #EXTINF:-1 tvg-id="TV8.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/tv8.png" group-title="Altro",TV8
 https://uvotv.zappr.stream/269.m3u8
 #EXTINF:-1 tvg-id="NOVE.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/nove.png" group-title="Altro",Nove
