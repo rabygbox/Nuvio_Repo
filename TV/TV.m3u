@@ -13,13 +13,13 @@ https://netplus.zappr.stream/canale5.m3u8
 https://netplus.zappr.stream/italia1.m3u8
 #EXTINF:-1 tvg-id="La7.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/la7.png" group-title="Altro",LA7
 https://zappr.stream/clearkey/?url=https://d15umi5iaezxgx.cloudfront.net/LA7/DRM/DASH/Live.mpd&kid=db057321c9224c25a7ccd75d911dd1fc&key=005b948eb397a581d10ff8bb60d19c93
-#EXTINF:-1 tvg-id="tv8.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/tv8.png" group-title="Altro",TV8
+#EXTINF:-1 tvg-id="TV8.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/tv8.png" group-title="Altro",TV8
 https://uvotv.zappr.stream/269.m3u8
 #EXTINF:-1 tvg-id="NOVE.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/nove.png" group-title="Altro",Nove
 https://viamotionhsi.netplus.ch/live/eds/nove/browser-HLS8/nove.m3u8
-#EXTINF:-1 tvg-id="topcrime.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/topcrime.png" group-title="Mediaset",Top Crime
+#EXTINF:-1 tvg-id="TOPcrime.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/topcrime.png" group-title="Mediaset",Top Crime
 https://uvotv.zappr.stream/86.m3u8
-#EXTINF:-1 tvg-id="cine34.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/cine34.png" group-title="Mediaset",Cine34
+#EXTINF:-1 tvg-id="Cine34.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/cine34.png" group-title="Mediaset",Cine34
 https://uvotv.zappr.stream/92.m3u8
 #EXTINF:-1 tvg-id="RSILA1.ch" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/rsila1.png" group-title="Altro",RSI La 1
 https://viamotionhsi.netplus.ch/live/eds/rsila1hd/browser-HLS8/rsila1hd.m3u8
@@ -27,7 +27,7 @@ https://viamotionhsi.netplus.ch/live/eds/rsila1hd/browser-HLS8/rsila1hd.m3u8
 https://viamotionhsi.netplus.ch/live/eds/rsila2hd/browser-HLS8/rsila2hd.m3u8
 #EXTINF:-1 tvg-id="Boing.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/boing.png" group-title="Mediaset",Boing
 https://boing.akamaized.net/6380392800112/eu-central-1/6284318116001/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJob3N0Ijoib3dwbnN1LmVncmVzcy5haGc3NmwiLCJhY2NvdW50X2lkIjoiNjI4NDMxODExNjAwMSIsImVobiI6ImJvaW5nLmFrYW1haXplZC5uZXQiLCJpc3MiOiJibGl2ZS1wbGF5YmFjay1zb3VyY2UtYXBpIiwic3ViIjoicGF0aG1hcHRva2VuIiwiYXVkIjpbIjYyODQzMTgxMTYwMDEiXSwianRpIjoiNjM4MDM5MjgwMDExMiJ9.0RWQ0yZrauU0cHSnbpBYhgyRPeq1Lyw6nOn_fo7_cg0/playlist-hls.m3u8
-#EXTINF:-1 tvg-id="BoingPlus.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/boingplus.png" group-title="Mediaset",Boing Plus
+#EXTINF:-1 tvg-id="Boing.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/boingplus.png" group-title="Mediaset",Boing Plus
 https://uvotv.zappr.stream/101.m3u8
 #EXTINF:-1 tvg-id="RaiGulp.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/raigulp.png" group-title="Rai",Rai Gulp
 https://rai.zappr.stream/raigulp.m3u8
@@ -37,7 +37,7 @@ https://boing.akamaized.net/6380673432112/eu-central-1/6284318116001/eyJhbGciOiJ
 https://d1pmpe0hs35ka5.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-39hsskpppgf72/K2_IT.m3u8
 #EXTINF:-1 tvg-id="DMAX.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/dmax.png" group-title="Mediaset",DMAX
 https://d2j2nqgg7bzth.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-02k1gv1j0ufwn/DMAX_IT.m3u8
-#EXTINF:-1 tvg-id="-frisbee-.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/frisbee.png" group-title="Mediaset",Frisbee
+#EXTINF:-1 tvg-id="-frisbee.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/frisbee.png" group-title="Mediaset",Frisbee
 https://d6m7lubks416z.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-zmbstsedxme9s/Frisbee_IT.m3u8
 #EXTINF:-1 tvg-id="Super!.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/super.png" group-title="Mediaset",Super!
 https://495c5a85d9074f29acffeaea9e0215eb.msvdn.net/super/super_main/super_main_hbbtv/playlist.m3u8
