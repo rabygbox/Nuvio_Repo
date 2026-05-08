@@ -1,2 +1,5 @@
-#EXTINF:-1 tvg-id="Movie" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/it/.png" group-title="Movie" The Interpreter 2005 ITA
+#EXTM3U
+#EXTINF:-1 tvg-id="tt0373926" group-title="Movies", The Interpreter 2005 ITA
 https://dl109.debrid.link/dl/dzbng3kom18uv0g04ogssjhi/The+Interpreter+2005.mp4
+
+
