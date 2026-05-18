@@ -1,43 +1,43 @@
 #EXTM3U url-tvg="https://iptv-epg.org/files/epg-it.xml"
-#EXTINF:-1 tvg-id="rai1.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rai1.png" group-title="Top Italia",Rai 1
+#EXTINF:-1 tvg-id="rai1.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/rai1.png" group-title="Top Italia",Rai 1
 https://viamotionhsi.netplus.ch/live/eds/rai1/browser-HLS8/rai1.m3u8
-#EXTINF:-1 tvg-id="rai2.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rai2.png" group-title="Top Italia",Rai 2
+#EXTINF:-1 tvg-id="rai2.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/rai2.png" group-title="Top Italia",Rai 2
 https://viamotionhsi.netplus.ch/live/eds/rai2/browser-HLS8/rai2.m3u8
-#EXTINF:-1 tvg-id="rai3.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rai3.png" group-title="Top Italia",Rai 3
+#EXTINF:-1 tvg-id="rai3.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/rai3.png" group-title="Top Italia",Rai 3
 https://viamotionhsi.netplus.ch/live/eds/rai3/browser-HLS8/rai3.m3u8
-#EXTINF:-1 tvg-id="Rete4.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rete4.png" group-title="Top Italia",Rete 4
+#EXTINF:-1 tvg-id="Rete4.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/rete4.png" group-title="Top Italia",Rete 4
 https://viamotionhsi.netplus.ch/live/eds/rete4/browser-HLS8/rete4.m3u8
-#EXTINF:-1 tvg-id="Canale5.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/canale5.png" group-title="Top Italia",Canale 5
+#EXTINF:-1 tvg-id="Canale5.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/canale5.png" group-title="Top Italia",Canale 5
 https://viamotionhsi.netplus.ch/live/eds/canale5/browser-HLS8/canale5.m3u8
-#EXTINF:-1 tvg-id="Italia1.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/italia1.png" group-title="Top Italia",Italia 1 
+#EXTINF:-1 tvg-id="Italia1.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/italia1.png" group-title="Top Italia",Italia 1 
 https://viamotionhsi.netplus.ch/live/eds/italia1/browser-HLS8/italia1.m3u8
-#EXTINF:-1 tvg-id="La7.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/la7.png" group-title="Top Italia",LA7
+#EXTINF:-1 tvg-id="La7.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/la7.png" group-title="Top Italia",LA7
 https://viamotionhsi.netplus.ch/live/eds/la7/browser-HLS8/la7.m3u8
-#EXTINF:-1 tvg-id="NOVE.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/nove.png" group-title="Top Italia",Nove
+#EXTINF:-1 tvg-id="NOVE.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/nove.png" group-title="Top Italia",Nove
 https://viamotionhsi.netplus.ch/live/eds/nove/browser-HLS8/nove.m3u8
-#EXTINF:-1 tvg-id="RSILA1.ch" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rsila1.png" group-title="Top Italia",RSI La 1
+#EXTINF:-1 tvg-id="RSILA1.ch" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/rsila1.png" group-title="Top Italia",RSI La 1
 https://viamotionhsi.netplus.ch/live/eds/rsila1hd/browser-HLS8/rsila1hd.m3u8
-#EXTINF:-1 tvg-id="RSILA2.ch" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rsila2.png" group-title="Top Italia",RSI La 2
+#EXTINF:-1 tvg-id="RSILA2.ch" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/rsila2.png" group-title="Top Italia",RSI La 2
 https://viamotionhsi.netplus.ch/live/eds/rsila2hd/browser-HLS8/rsila2hd.m3u8
-#EXTINF:-1 tvg-id="RaiGulp.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/raigulp.png" group-title="Top Italia",Rai Gulp
+#EXTINF:-1 tvg-id="RaiGulp.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/raigulp.png" group-title="Top Italia",Rai Gulp
 https://viamotionhsi.netplus.ch/live/eds/raigulp/browser-HLS8/raigulp.m3u8
-#EXTINF:-1 tvg-id="K2.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/k2.png" group-title="Top Italia" group-title="Top Italia",K2
+#EXTINF:-1 tvg-id="K2.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/k2.png" group-title="Top Italia" group-title="Top Italia",K2
 https://d1pmpe0hs35ka5.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-39hsskpppgf72/K2_IT.m3u8
-#EXTINF:-1 tvg-id="DMAX.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/dmax.png" group-title="Top Italia",DMAX
+#EXTINF:-1 tvg-id="DMAX.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/dmax.png" group-title="Top Italia",DMAX
 https://viamotionhsi.netplus.ch/live/eds/dmaxitalia/browser-HLS8/dmaxitalia.m3u8
-#EXTINF:-1 tvg-id="-frisbee-.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/frisbee.png" group-title="Top Italia",Frisbee
+#EXTINF:-1 tvg-id="-frisbee-.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/frisbee.png" group-title="Top Italia",Frisbee
 https://d6m7lubks416z.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-zmbstsedxme9s/Frisbee_IT.m3u8
-#EXTINF:-1 tvg-id="Super!.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/super.png" group-title="Top Italia",Super!
+#EXTINF:-1 tvg-id="Super!.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/super.png" group-title="Top Italia",Super!
 https://495c5a85d9074f29acffeaea9e0215eb.msvdn.net/super/super_main/super_main_hbbtv/playlist.m3u8
-#EXTINF:-1 tvg-id="MotorTrend.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/motortrend.png" group-title="Top Italia",Motor Trend
+#EXTINF:-1 tvg-id="MotorTrend.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/motortrend.png" group-title="Top Italia",Motor Trend
 https://d205m6k582pec4.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-asg5puyzdtnqu/Motortrend_IT.m3u8
-#EXTINF:-1 tvg-id="GIALLO.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/giallo.png" group-title="Top Italia",Giallo
+#EXTINF:-1 tvg-id="GIALLO.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/giallo.png" group-title="Top Italia",Giallo
 https://d9fqo6nfqlv2h.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-ulukbrgm1n3yb/Giallo_IT.m3u8
-#EXTINF:-1 tvg-id="RealTime.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/realtime.png" group-title="Top Italia",Real Time
+#EXTINF:-1 tvg-id="RealTime.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/realtime.png" group-title="Top Italia",Real Time
 https://d3562mgijzx0zq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-kizqtzpvvl3i8/Realtime_IT.m3u8
-#EXTINF:-1 tvg-id="RTL1025.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/rtl102-5.png" group-title="Top Italia",RTL 102.5
+#EXTINF:-1 tvg-id="RTL1025.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/rtl102-5.png" group-title="Top Italia",RTL 102.5
 https://dd782ed59e2a4e86aabf6fc508674b59.msvdn.net/live/S97044836/tbbP8T1ZRPBL/playlist.m3u8
-#EXTINF:-1 tvg-id="HGTV.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_ita/hgtv.png" group-title="Top Italia",HGTV
+#EXTINF:-1 tvg-id="HGTV.it" tvg-logo="https://raw.githubusercontent.com/rabygbox/Nuvio_Repo/refs/heads/main/TV/tvg-logo/hgtv.png" group-title="Top Italia",HGTV
 https://d1tidto9vz737l.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-joaw4f4kh2en1/HGTV_IT.m3u8
 #EXTINF:-1 tvg-id="RTL.de" tvg-name="RTL" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/rtl.png" group-title="Deutschland",RTL
 https://viamotionhsi.netplus.ch/live/eds/rtl/browser-HLS8/rtl.m3u8
