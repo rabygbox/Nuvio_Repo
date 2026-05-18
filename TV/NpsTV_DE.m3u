@@ -1,0 +1,48 @@
+#EXTINF:-1 tvg-id="RTL.de" tvg-name="RTL" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/rtl.png" group-title="Deutschland",RTL
+https://viamotionhsi.netplus.ch/live/eds/rtl/browser-HLS8/rtl.m3u8
+#EXTINF:-1 tvg-id="RTLZWEI.de" tvg-name="RTLZWEI" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/rtl2.png" group-title="Deutschland",RTLZWEI
+https://viamotionhsi.netplus.ch/live/eds/rtl2/browser-HLS8/rtl2.m3u8
+#EXTINF:-1 tvg-id="ProSieben.de" tvg-name="Pro7" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/pro7.png" group-title="Deutschland",Pro7
+https://dash4.antik.sk/live/test_pro_sieben_tizen/playlist.m3u8
+#EXTINF:-1 tvg-id="Kabel1.de" tvg-name="Kabel 1" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/kabel1.png" group-title="Deutschland",Kabel 1
+https://dash4.antik.sk/live/test_kabel_eins_tizen/playlist.m3u8
+#EXTINF:-1 tvg-id="3sat.de" tvg-name="3sat" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/3sat.png" group-title="Deutschland",3sat
+https://viamotionhsi.netplus.ch/live/eds/3sathd/browser-HLS8/3sathd.m3u8
+#EXTINF:-1 tvg-id="KIKA.de" tvg-name="KIKA" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/kika.png" group-title="Deutschland",KIKA
+https://viamotionhsi.netplus.ch/live/eds/kikahd/browser-HLS8/kikahd.m3u8
+#EXTINF:-1 tvg-id="SPORT1.de" tvg-name="Sport 1" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/sport1.png" group-title="Deutschland",Sport 1
+https://viamotionhsi.netplus.ch/live/eds/sport1/browser-HLS8/sport1.m3u8
+#EXTINF:-1 tvg-id="rtlsuper.de" tvg-name="RTL SUPER" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/superrtl.png" group-title="Deutschland",RTL SUPER
+https://viamotionhsi.netplus.ch/live/eds/superrtl/browser-HLS8/superrtl.m3u8
+#EXTINF:-1 tvg-id="RTLNitro.de" tvg-name="RTL nitro" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/rtlnitro.png" group-title="Deutschland",RTL nitro
+https://viamotionhsi.netplus.ch/live/eds/rtlnitro/browser-HLS8/rtlnitro.m3u8
+#EXTINF:-1 tvg-id="ZDFneo.de" tvg-name="zdf neo" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/zdfneo.png" group-title="Deutschland",zdf neo
+https://viamotionhsi.netplus.ch/live/eds/zdfneohd/browser-dash/zdfneohd.mpd
+#EXTINF:-1 tvg-id="ZDFinfo.de" tvg-name="zdf info" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/zdfinfo.png" group-title="Deutschland",zdf info
+https://viamotionhsi.netplus.ch/live/eds/zdfinfohd/browser-dash/zdfinfohd.mpd
+#EXTINF:-1 tvg-id="ntv.de" tvg-name="ntv" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/ntv.png" group-title="Deutschland",ntv
+https://viamotionhsi.netplus.ch/live/eds/ntv/browser-dash/ntv.mpd
+#EXTINF:-1 tvg-id="phoenix.de" tvg-name="phoenix" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/phoenix.png" group-title="Deutschland",phoenix
+https://viamotionhsi.netplus.ch/live/eds/phoenixhd/browser-dash/phoenixhd.mpd
+#EXTINF:-1 tvg-id="Eurosport1.de" tvg-name="Eurosport 1" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/eurosport1.png" group-title="Deutschland",Eurosport 1
+https://viamotionhsi.netplus.ch/live/eds/eurosportde/browser-dash/eurosportde.mpd
+#EXTINF:-1 tvg-id="kabeleinsDoku.de" tvg-name="kabel eins DOKU" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/kabel1doku.png" group-title="Deutschland",kabel eins DOKU
+https://viamotionhsi.netplus.ch/live/eds/kabel1doku/browser-dash/kabel1doku.mpd
+#EXTINF:-1 tvg-id="PULSacht.de" tvg-name="puls acht" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/plusacht.png" group-title="Deutschland",puls acht
+https://viamotionhsi.netplus.ch/live/eds/puls8/browser-dash/puls8.mpd
+#EXTINF:-1 tvg-id="ComedyCentral.de" tvg-name="comedy central" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/comedycentral.png" group-title="Deutschland",comedy central
+https://viamotionhsi.netplus.ch/live/eds/comedycentral/browser-dash/comedycentral.mpd
+#EXTINF:-1 tvg-id="Nickelodeon.de" tvg-name="comedy central+1" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/comedycentral1.png" group-title="Deutschland",comedy central+1
+https://viamotionhsi.netplus.ch/live/eds/comedycentralnick/browser-dash/comedycentralnick.mpd
+#EXTINF:-1 tvg-id="7maxx.de" tvg-name="7MAXX" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/pro7maxx.png" group-title="Deutschland",7MAXX
+https://viamotionhsi.netplus.ch/live/eds/prosiebenmaxx/browser-dash/prosiebenmaxx.mpd
+#EXTINF:-1 tvg-id="Tele5.de" tvg-name="tele5" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/tele5.png" group-title="Deutschland",tele5
+https://viamotionhsi.netplus.ch/live/eds/tele5/browser-dash/tele5.mpd
+#EXTINF:-1 tvg-id="ARDalpha.de" tvg-name="ARD alpha" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/ardalpha.png" group-title="Deutschland",ARD alpha
+https://viamotionhsi.netplus.ch/live/eds/bralpha/browser-dash/bralpha.mpd
+#EXTINF:-1 tvg-id="DELUXEMUSIC.de" tvg-name="DELUXE MUSIC" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/deluxemusic.png" group-title="Deutschland",DELUXE MUSIC
+https://viamotionhsi.netplus.ch/live/eds/deluxemusic/browser-dash/deluxemusic.mpd
+#EXTINF:-1 tvg-id="VOX.de" tvg-name="VOX" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/vox.png" group-title="Deutschland",VOX
+https://viamotionhsi.netplus.ch/live/eds/vox/browser-dash/vox.mpd
+#EXTINF:-1 tvg-id="disneychannel.de" tvg-name="Disney Channel" tvg-logo="https://raw.githubusercontent.com/rabygbox/iptv-stremio/refs/heads/main/Logo_de/disneychannel.png" group-title="Deutschland",Disney Channel
+https://viamotionhsi.netplus.ch/live/eds/disneychannelde/browser-HLS8/disneychannelde.m3u8
