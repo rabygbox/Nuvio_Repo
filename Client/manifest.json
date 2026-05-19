@@ -134,7 +134,7 @@
     },
     {
       "id": "easystreams-vixsrc",
-      "name": "Vixsrc",
+      "name": "VixSrc",
       "version": "1.0.2",
       "description": "Streams from VixSrc",
       "resources": ["stream"],
