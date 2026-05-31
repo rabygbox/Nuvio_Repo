@@ -1,4 +1,6 @@
 var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
@@ -15,6 +17,7 @@ var __spreadValues = (a, b) => {
     }
   return a;
 };
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __objRest = (source, exclude) => {
   var target = {};
   for (var prop in source)
@@ -92,10 +95,15 @@ var require_common = __commonJS({
       }
       return p;
     }
+    function isFlareSolverrBlockedError(error) {
+      const message = String(error && error.message || error || "");
+      return /FlareSolverr in cooldown|Request failed with status code 500|Cloudflare has blocked/i.test(message);
+    }
     module2.exports = {
       USER_AGENT: USER_AGENT2,
       unPack: unPack2,
-      getProxiedUrl
+      getProxiedUrl,
+      isFlareSolverrBlockedError
     };
   }
 });
@@ -105,48 +113,92 @@ var require_mixdrop = __commonJS({
   "src/extractors/mixdrop.js"(exports2, module2) {
     var { USER_AGENT: USER_AGENT2, unPack: unPack2 } = require_common();
     function isMixDropDisabled() {
-      if (typeof global !== "undefined" && global && global.DISABLE_MIXDROP === true) {
-        return true;
-      }
       const rawEnv = typeof process !== "undefined" && process && process.env && typeof process.env.DISABLE_MIXDROP === "string" ? process.env.DISABLE_MIXDROP.trim().toLowerCase() : "";
       return ["1", "true", "yes", "on"].includes(rawEnv);
+    }
+    function normalizeUrl(url, baseUrl) {
+      try {
+        return new URL(String(url || ""), baseUrl).toString();
+      } catch (e) {
+        return null;
+      }
+    }
+    function extractPackedStream(html) {
+      const packedRegex = /eval\(function\(p,a,c,k,e,d\)\s*\{.*?\}\s*\('(.*?)',(\d+),(\d+),'(.*?)'\.split\('\|'\),(\d+),(\{\})\)\)/;
+      const match = packedRegex.exec(String(html || ""));
+      if (!match) return null;
+      const p = match[1];
+      const a = parseInt(match[2]);
+      const c = parseInt(match[3]);
+      const k = match[4].split("|");
+      const unpacked = unPack2(p, a, c, k, null, {});
+      const wurlMatch = unpacked.match(/wurl\s*=\s*["']([^"']+)["']/);
+      if (!wurlMatch) return null;
+      let streamUrl = wurlMatch[1];
+      if (streamUrl.startsWith("//")) streamUrl = "https:" + streamUrl;
+      return streamUrl;
+    }
+    function extractEmbedUrl(html, pageUrl) {
+      const match = String(html || "").match(/<iframe\b[^>]+src=["']([^"']*\/e\/[^"']+)["']/i);
+      if (match) return normalizeUrl(match[1], pageUrl);
+      const converted = String(pageUrl || "").replace(/\/f\//i, "/e/");
+      return converted !== pageUrl ? converted : null;
     }
     function extractMixDrop2(url, refererBase = "https://m1xdrop.net/") {
       return __async(this, null, function* () {
         if (isMixDropDisabled()) return null;
         try {
           if (url.startsWith("//")) url = "https:" + url;
-          const response = yield fetch(url, {
-            headers: {
-              "User-Agent": USER_AGENT2,
-              "Referer": refererBase
-            }
+          const fetchHtml = (targetUrl, referer) => __async(null, null, function* () {
+            const response = yield fetch(targetUrl, {
+              headers: {
+                "User-Agent": USER_AGENT2,
+                "Referer": referer,
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+                "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7"
+              }
+            });
+            if (!response.ok) return null;
+            return {
+              url: response.url || targetUrl,
+              html: yield response.text()
+            };
           });
-          if (!response.ok) return null;
-          const html = yield response.text();
-          const packedRegex = /eval\(function\(p,a,c,k,e,d\)\s*\{.*?\}\s*\('(.*?)',(\d+),(\d+),'(.*?)'\.split\('\|'\),(\d+),(\{\})\)\)/;
-          const match = packedRegex.exec(html);
-          if (match) {
-            const p = match[1];
-            const a = parseInt(match[2]);
-            const c = parseInt(match[3]);
-            const k = match[4].split("|");
-            const unpacked = unPack2(p, a, c, k, null, {});
-            const wurlMatch = unpacked.match(/wurl="([^"]+)"/);
-            if (wurlMatch) {
-              let streamUrl = wurlMatch[1];
-              if (streamUrl.startsWith("//")) streamUrl = "https:" + streamUrl;
-              return {
-                url: streamUrl,
-                headers: {
-                  "User-Agent": USER_AGENT2,
-                  "Referer": "https://m1xdrop.net/",
-                  "Origin": "https://m1xdrop.net"
-                }
-              };
+          let page = yield fetchHtml(url, refererBase);
+          if (!page) return null;
+          let streamUrl = extractPackedStream(page.html);
+          let pageUrl = page.url;
+          if (!streamUrl) {
+            const embedUrl = extractEmbedUrl(page.html, pageUrl);
+            if (embedUrl && embedUrl !== pageUrl) {
+              const embedPage = yield fetchHtml(embedUrl, pageUrl);
+              if (embedPage) {
+                page = embedPage;
+                pageUrl = embedPage.url;
+                streamUrl = extractPackedStream(embedPage.html);
+              }
             }
           }
-          return null;
+          if (!streamUrl) return null;
+          const origin = (() => {
+            try {
+              return new URL(pageUrl).origin;
+            } catch (e) {
+              return "";
+            }
+          })();
+          return {
+            url: streamUrl,
+            referer: pageUrl,
+            userAgent: USER_AGENT2,
+            headers: {
+              "User-Agent": USER_AGENT2,
+              "Referer": pageUrl,
+              "Origin": origin,
+              "Accept": "*/*",
+              "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7"
+            }
+          };
         } catch (e) {
           console.error("[Extractors] MixDrop extraction error:", e);
           return null;
@@ -502,7 +554,6 @@ var require_quality_helper = __commonJS({
     function checkQualityFromPlaylist(_0) {
       return __async(this, arguments, function* (url, headers = {}) {
         try {
-          if (!url.includes(".m3u8")) return null;
           const finalHeaders = __spreadValues({}, headers);
           if (!finalHeaders["User-Agent"]) {
             finalHeaders["User-Agent"] = USER_AGENT2;
@@ -515,6 +566,7 @@ var require_quality_helper = __commonJS({
             });
             if (!response.ok) return null;
             const text = yield response.text();
+            if (!text.startsWith("#EXTM3U")) return null;
             const quality = checkQualityFromText(text);
             if (quality) console.log(`[QualityHelper] Detected ${quality} from playlist: ${url}`);
             return quality;
@@ -525,6 +577,28 @@ var require_quality_helper = __commonJS({
           }
         } catch (e) {
           return null;
+        }
+      });
+    }
+    function checkItalianAudioInPlaylist(_0) {
+      return __async(this, arguments, function* (url, headers = {}) {
+        try {
+          const finalHeaders = __spreadValues({}, headers);
+          if (!finalHeaders["User-Agent"]) finalHeaders["User-Agent"] = USER_AGENT2;
+          const timeoutConfig = createTimeoutSignal(3e3);
+          try {
+            const response = yield fetch(url, { headers: finalHeaders, signal: timeoutConfig.signal });
+            if (!response.ok) return false;
+            const text = yield response.text();
+            if (!text.startsWith("#EXTM3U")) return false;
+            const hasAudioTags = /#EXT-X-MEDIA:TYPE=AUDIO/i.test(text);
+            if (!hasAudioTags) return true;
+            return /#EXT-X-MEDIA:TYPE=AUDIO.*(?:LANGUAGE="it"|LANGUAGE="ita"|NAME="Italian"|NAME="Ita")/i.test(text);
+          } finally {
+            if (typeof timeoutConfig.cleanup === "function") timeoutConfig.cleanup();
+          }
+        } catch (e) {
+          return false;
         }
       });
     }
@@ -548,7 +622,7 @@ var require_quality_helper = __commonJS({
       if (urlPath.includes("360")) return "360p";
       return null;
     }
-    module2.exports = { checkQualityFromPlaylist, getQualityFromUrl, checkQualityFromText };
+    module2.exports = { checkQualityFromPlaylist, getQualityFromUrl, checkQualityFromText, checkItalianAudioInPlaylist };
   }
 });
 
@@ -7331,6 +7405,92 @@ var require_streamhg = __commonJS({
   }
 });
 
+// src/extractors/vidxgo.js
+var require_vidxgo = __commonJS({
+  "src/extractors/vidxgo.js"(exports2, module2) {
+    var { USER_AGENT: USER_AGENT2 } = require_common();
+    var VIDXGO_HEADERS = {
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Sec-GPC": "1",
+      "Alt-Used": "v.vidxgo.co",
+      "Connection": "keep-alive",
+      "Upgrade-Insecure-Requests": "1",
+      "Sec-Fetch-Dest": "iframe",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "DNT": "1",
+      "Priority": "u=0, i"
+    };
+    function xorDecrypt(b64, key) {
+      const decoded = Buffer.from(b64, "base64");
+      const result = Buffer.alloc(decoded.length);
+      for (let i = 0; i < decoded.length; i++) {
+        result[i] = decoded[i] ^ key.charCodeAt(i % key.length);
+      }
+      return result.toString("utf-8");
+    }
+    var XOR_PATTERN = /var\s+\w+\s*=\s*'([\w]+)'\s*,?\s*d\s*=\s*atob\s*\(\s*'([A-Za-z0-9+/=]+)'\s*\)/g;
+    var CURRENT_SRC_PATTERN = /\bcurrentSrc\s*=\s*["'](https?:[^"']+?\.m3u8[^"']*)["']/;
+    var CORRUPT_PLAYER_PATTERN = /player-container[^>]*\bcorrupt\b/i;
+    function extractVidxGo2(url, referer = "https://altadefinizione.you/") {
+      return __async(this, null, function* () {
+        try {
+          if (url.startsWith("//")) url = "https:" + url;
+          const headers = __spreadProps(__spreadValues({}, VIDXGO_HEADERS), { "Referer": referer });
+          const resp = yield fetch(url, { headers, redirect: "follow" });
+          if (!resp.ok) {
+            console.warn("[VidxGo] HTTP", resp.status, "for", url);
+            return { url, headers: { "User-Agent": USER_AGENT2, "Referer": referer } };
+          }
+          const html = yield resp.text();
+          let match;
+          XOR_PATTERN.lastIndex = 0;
+          while ((match = XOR_PATTERN.exec(html)) !== null) {
+            try {
+              const decrypted = xorDecrypt(match[2], match[1]);
+              const streamMatch = decrypted.match(CURRENT_SRC_PATTERN);
+              if (streamMatch) {
+                const streamUrl = streamMatch[1].replace(/\\/g, "");
+                const vidxgoOrigin = new URL(url).origin;
+                return {
+                  url: streamUrl,
+                  headers: {
+                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
+                    "Referer": url,
+                    "Origin": vidxgoOrigin,
+                    "Accept": "*/*",
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Sec-GPC": "1",
+                    "Sec-Fetch-Dest": "empty",
+                    "Sec-Fetch-Mode": "cors",
+                    "Sec-Fetch-Site": "cross-site",
+                    "DNT": "1",
+                    "Priority": "u=0"
+                  }
+                };
+              }
+            } catch (e) {
+              continue;
+            }
+          }
+          if (CORRUPT_PLAYER_PATTERN.test(html)) {
+            console.warn("[VidxGo] Source is marked corrupt or not available");
+            return null;
+          }
+          console.warn("[VidxGo] No stream URL found in page");
+          return { url, headers: { "User-Agent": USER_AGENT2, "Referer": referer } };
+        } catch (e) {
+          console.error("[VidxGo] Extraction error:", e);
+          return null;
+        }
+      });
+    }
+    module2.exports = { extractVidxGo: extractVidxGo2, VIDXGO_HEADERS, CORRUPT_PLAYER_PATTERN };
+  }
+});
+
 // src/extractors/index.js
 var { extractMixDrop } = require_mixdrop();
 var { extractDropLoad } = require_dropload();
@@ -7342,6 +7502,7 @@ var { extractVidoza } = require_vidoza();
 var { extractVixCloud } = require_vixcloud();
 var { extractLoadm } = require_loadm();
 var { extractStreamHG } = require_streamhg();
+var { extractVidxGo } = require_vidxgo();
 var { USER_AGENT, unPack } = require_common();
 module.exports = {
   extractMixDrop,
@@ -7354,6 +7515,7 @@ module.exports = {
   extractVixCloud,
   extractLoadm,
   extractStreamHG,
+  extractVidxGo,
   USER_AGENT,
   unPack
 };
