@@ -111,93 +111,86 @@ var require_common = __commonJS({
 // src/extractors/vidxgo.js
 var require_vidxgo = __commonJS({
   "src/extractors/vidxgo.js"(exports2, module2) {
-    var { spawn } = require("child_process");
-    var path = require("path");
-    var fs = require("fs");
     var { USER_AGENT } = require_common();
-    function getPythonExe() {
-      const venvPython = path.join(process.cwd(), ".venv", process.platform === "win32" ? "Scripts/python.exe" : "bin/python");
-      if (fs.existsSync(venvPython)) return venvPython;
-      if (process.platform === "win32") return "python";
-      return "python3";
+    var VIDXGO_HEADERS = {
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Sec-GPC": "1",
+      "Alt-Used": "v.vidxgo.co",
+      "Connection": "keep-alive",
+      "Upgrade-Insecure-Requests": "1",
+      "Sec-Fetch-Dest": "iframe",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "DNT": "1",
+      "Priority": "u=0, i"
+    };
+    function xorDecrypt(b64, key) {
+      const decoded = Buffer.from(b64, "base64");
+      const result = Buffer.alloc(decoded.length);
+      for (let i = 0; i < decoded.length; i++) {
+        result[i] = decoded[i] ^ key.charCodeAt(i % key.length);
+      }
+      return result.toString("utf-8");
     }
-    function bypassAndExtract(url, referer = null) {
-      return __async(this, null, function* () {
-        const scriptPath = path.join(__dirname, "..", "utils", "vidxgo_bypass.py");
-        const pythonExe = getPythonExe();
-        const args = [
-          scriptPath,
-          url,
-          "--referer",
-          referer || "https://altadefinizione.you/"
-        ];
-        return new Promise((resolve, reject) => {
-          const child = spawn(pythonExe, args);
-          let stdout = "";
-          let stderr = "";
-          child.stdout.on("data", (data) => {
-            stdout += data.toString();
-          });
-          child.stderr.on("data", (data) => {
-            stderr += data.toString();
-          });
-          child.on("close", (code) => {
-            if (code !== 0) console.error("[VidxGo] Python script exited with code", code, "stderr:", stderr);
-            if (stdout.trim()) {
-              try {
-                const result = JSON.parse(stdout);
-                if (result.status === "ok" && result.stream_url) {
-                  resolve(result.stream_url);
-                  return;
-                }
-                console.warn("[VidxGo] Python script returned error:", result.error || "unknown");
-                resolve(null);
-              } catch (e) {
-                console.warn("[VidxGo] Failed to parse Python output:", stdout.substring(0, 200));
-                resolve(null);
-              }
-            } else {
-              console.warn("[VidxGo] Python script returned empty stdout, stderr:", stderr);
-              resolve(null);
-            }
-          });
-          child.on("error", () => resolve(null));
-        });
-      });
-    }
-    function extractVidxGo(url, referer = null) {
+    var XOR_PATTERN = /var\s+\w+\s*=\s*'([\w]+)'\s*,?\s*d\s*=\s*atob\s*\(\s*'([A-Za-z0-9+/=]+)'\s*\)/g;
+    var CURRENT_SRC_PATTERN = /\bcurrentSrc\s*=\s*["'](https?:[^"']+?\.m3u8[^"']*)["']/;
+    var CORRUPT_PLAYER_PATTERN = /player-container[^>]*\bcorrupt\b/i;
+    function extractVidxGo(url, referer = "https://altadefinizione.you/") {
       return __async(this, null, function* () {
         try {
           if (url.startsWith("//")) url = "https:" + url;
-          const streamUrl = yield bypassAndExtract(url, referer);
-          if (streamUrl) {
-            console.log("[VidxGo] Real stream URL extracted:", streamUrl);
-            const vidxgoOrigin = new URL(url).origin;
-            return {
-              url: streamUrl,
-              headers: {
-                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
-                "Referer": url,
-                "Origin": vidxgoOrigin,
-                "Accept": "*/*",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Sec-GPC": "1",
-                "Sec-Fetch-Dest": "empty",
-                "Sec-Fetch-Mode": "cors",
-                "Sec-Fetch-Site": "cross-site",
-                "DNT": "1",
-                "Priority": "u=0"
-              }
-            };
+          const headers = __spreadProps(__spreadValues({}, VIDXGO_HEADERS), { "Referer": referer });
+          const resp = yield fetch(url, { headers, redirect: "follow" });
+          if (!resp.ok) {
+            console.warn("[VidxGo] HTTP", resp.status, "for", url);
+            return { url, headers: { "User-Agent": USER_AGENT, "Referer": referer } };
           }
-          return { url, headers: { "User-Agent": USER_AGENT, "Referer": referer || url } };
+          const html = yield resp.text();
+          let match;
+          XOR_PATTERN.lastIndex = 0;
+          while ((match = XOR_PATTERN.exec(html)) !== null) {
+            try {
+              const decrypted = xorDecrypt(match[2], match[1]);
+              const streamMatch = decrypted.match(CURRENT_SRC_PATTERN);
+              if (streamMatch) {
+                const streamUrl = streamMatch[1].replace(/\\/g, "");
+                const vidxgoOrigin = new URL(url).origin;
+                return {
+                  url: streamUrl,
+                  headers: {
+                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
+                    "Referer": url,
+                    "Origin": vidxgoOrigin,
+                    "Accept": "*/*",
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Sec-GPC": "1",
+                    "Sec-Fetch-Dest": "empty",
+                    "Sec-Fetch-Mode": "cors",
+                    "Sec-Fetch-Site": "cross-site",
+                    "DNT": "1",
+                    "Priority": "u=0"
+                  }
+                };
+              }
+            } catch (e) {
+              continue;
+            }
+          }
+          if (CORRUPT_PLAYER_PATTERN.test(html)) {
+            console.warn("[VidxGo] Source is marked corrupt or not available");
+            return null;
+          }
+          console.warn("[VidxGo] No stream URL found in page");
+          return { url, headers: { "User-Agent": USER_AGENT, "Referer": referer } };
         } catch (e) {
           console.error("[VidxGo] Extraction error:", e);
           return null;
         }
       });
     }
-    module2.exports = { extractVidxGo };
+    module2.exports = { extractVidxGo, VIDXGO_HEADERS, CORRUPT_PLAYER_PATTERN };
   }
 });
 
@@ -269,7 +262,6 @@ var require_quality_helper = __commonJS({
     function checkQualityFromPlaylist(_0) {
       return __async(this, arguments, function* (url, headers = {}) {
         try {
-          if (!url.includes(".m3u8")) return null;
           const finalHeaders = __spreadValues({}, headers);
           if (!finalHeaders["User-Agent"]) {
             finalHeaders["User-Agent"] = USER_AGENT;
@@ -282,6 +274,7 @@ var require_quality_helper = __commonJS({
             });
             if (!response.ok) return null;
             const text = yield response.text();
+            if (!text.startsWith("#EXTM3U")) return null;
             const quality = checkQualityFromText(text);
             if (quality) console.log(`[QualityHelper] Detected ${quality} from playlist: ${url}`);
             return quality;
@@ -292,6 +285,28 @@ var require_quality_helper = __commonJS({
           }
         } catch (e) {
           return null;
+        }
+      });
+    }
+    function checkItalianAudioInPlaylist(_0) {
+      return __async(this, arguments, function* (url, headers = {}) {
+        try {
+          const finalHeaders = __spreadValues({}, headers);
+          if (!finalHeaders["User-Agent"]) finalHeaders["User-Agent"] = USER_AGENT;
+          const timeoutConfig = createTimeoutSignal(3e3);
+          try {
+            const response = yield fetch(url, { headers: finalHeaders, signal: timeoutConfig.signal });
+            if (!response.ok) return false;
+            const text = yield response.text();
+            if (!text.startsWith("#EXTM3U")) return false;
+            const hasAudioTags = /#EXT-X-MEDIA:TYPE=AUDIO/i.test(text);
+            if (!hasAudioTags) return true;
+            return /#EXT-X-MEDIA:TYPE=AUDIO.*(?:LANGUAGE="it"|LANGUAGE="ita"|NAME="Italian"|NAME="Ita")/i.test(text);
+          } finally {
+            if (typeof timeoutConfig.cleanup === "function") timeoutConfig.cleanup();
+          }
+        } catch (e) {
+          return false;
         }
       });
     }
@@ -315,7 +330,7 @@ var require_quality_helper = __commonJS({
       if (urlPath.includes("360")) return "360p";
       return null;
     }
-    module2.exports = { checkQualityFromPlaylist, getQualityFromUrl, checkQualityFromText };
+    module2.exports = { checkQualityFromPlaylist, getQualityFromUrl, checkQualityFromText, checkItalianAudioInPlaylist };
   }
 });
 
@@ -364,10 +379,14 @@ var require_formatter = __commonJS({
       else if (!quality || ["auto", "unknown", "unknow"].includes(String(quality).toLowerCase())) quality = "\u{1F4BF} HD";
       let title = `\u{1F4C1} ${stream.title || "Stream"}`;
       let language = stream.language;
-      if (!language) {
-        if (stream.name && (stream.name.includes("SUB ITA") || stream.name.includes("SUB"))) language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
-        else if (stream.title && (stream.title.includes("SUB ITA") || stream.title.includes("SUB"))) language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
-        else language = "\u{1F1EE}\u{1F1F9}";
+      if (language === "Italian") {
+        language = "\u{1F1EE}\u{1F1F9}";
+      } else if (stream.name && (stream.name.includes("SUB ITA") || stream.name.includes("SUB"))) {
+        language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
+      } else if (stream.title && (stream.title.includes("SUB ITA") || stream.title.includes("SUB"))) {
+        language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
+      } else if (language === void 0 || language === null) {
+        language = "";
       }
       let details = [];
       if (stream.size) details.push(`\u{1F4E6} ${stream.size}`);
@@ -401,10 +420,11 @@ var require_formatter = __commonJS({
         behaviorHints.proxyHeaders.request = finalHeaders;
         behaviorHints.headers = finalHeaders;
       }
+      const providerExplicitNotWebReady = stream.behaviorHints && "notWebReady" in stream.behaviorHints;
       const shouldForceNotWebReady = shouldForceNotWebReadyForPlugin(stream, providerName, finalHeaders, behaviorHints);
       if (!isStreamingCommunityProvider && shouldForceNotWebReady) {
         behaviorHints.notWebReady = true;
-      } else {
+      } else if (!providerExplicitNotWebReady) {
         delete behaviorHints.notWebReady;
       }
       const finalName = pName;
@@ -528,17 +548,17 @@ if (!IS_SERVER) {
       }
       return null;
     });
-  }, getIdsFromKitsu = function(kitsuId, season, episode, providerContext = null) {
+  }, getIdsFromMapping = function(provider, externalId, season, episode, lang = null) {
     return __async2(this, null, function* () {
       try {
-        if (!kitsuId) return null;
+        if (!externalId) return null;
         const params = new URLSearchParams();
         const parsedEpisode = parseInt(String(episode || ""), 10);
         const parsedSeason = parseInt(String(season || ""), 10);
         params.set("ep", Number.isInteger(parsedEpisode) && parsedEpisode > 0 ? String(parsedEpisode) : "1");
         if (Number.isInteger(parsedSeason) && parsedSeason >= 0) params.set("s", String(parsedSeason));
-        params.set("lang", "it");
-        const url = `${getMappingApiUrl()}/kitsu/${encodeURIComponent(String(kitsuId).trim())}?${params.toString()}`;
+        if (lang) params.set("lang", lang);
+        const url = `${getMappingApiUrl()}/${provider}/${encodeURIComponent(String(externalId).trim())}?${params.toString()}`;
         const response = yield fetch(url);
         if (!response.ok) return null;
         const payload = yield response.json();
@@ -557,7 +577,7 @@ if (!IS_SERVER) {
           rawEpisodeNumber: Number.isInteger(rawEpisodeNumber) && rawEpisodeNumber > 0 ? rawEpisodeNumber : null
         };
       } catch (e) {
-        console.error("[VidxGo] Kitsu mapping error:", e);
+        console.error("[VidxGo] mapping error:", e);
         return null;
       }
     });
@@ -577,9 +597,10 @@ if (!IS_SERVER) {
         const contextTmdbId = providerContext && /^\d+$/.test(String(providerContext.tmdbId || "")) ? String(providerContext.tmdbId) : null;
         const contextImdbId = providerContext && /^tt\d+$/i.test(String(providerContext.imdbId || "")) ? String(providerContext.imdbId) : null;
         const contextKitsuId = providerContext && /^\d+$/.test(String(providerContext.kitsuId || "")) ? String(providerContext.kitsuId) : null;
+        const mappingLang = getMappingLanguage(providerContext);
         if (id.toString().startsWith("kitsu:") || contextKitsuId) {
           const kitsuId = contextKitsuId || id.toString().split(":")[1];
-          const mapped = yield getIdsFromKitsu(kitsuId, season, episode, providerContext);
+          const mapped = yield getIdsFromMapping("kitsu", kitsuId, season, episode, mappingLang);
           mark("kitsu_mapping_done", { ok: Boolean(mapped && mapped.tmdbId) });
           if (mapped) {
             if (mapped.tmdbId) tmdbId = mapped.tmdbId;
@@ -594,21 +615,43 @@ if (!IS_SERVER) {
         } else if (id.toString().startsWith("tt")) {
           imdbId = id.toString();
           tmdbId = contextTmdbId || tmdbId;
-          mark("imdb_to_tmdb_done", { ok: true });
+          const mapped = yield getIdsFromMapping("imdb", imdbId, season, episode, mappingLang);
+          if (mapped && mapped.tmdbId) tmdbId = mapped.tmdbId;
+          if (mapped && mapped.mappedSeason && mapped.mappedEpisode) {
+            effectiveSeason = mapped.mappedSeason;
+            effectiveEpisode = mapped.mappedEpisode;
+          } else if (mapped && mapped.rawEpisodeNumber) {
+            effectiveEpisode = mapped.rawEpisodeNumber;
+          }
+          mark("imdb_mapping_done", { ok: true });
         } else if (id.toString().startsWith("tmdb:")) {
           tmdbId = id.toString().replace("tmdb:", "");
+        }
+        if (!imdbId && tmdbId) {
+          const mapped = yield getIdsFromMapping("tmdb", tmdbId, season, episode, mappingLang);
+          if (mapped && mapped.imdbId) imdbId = mapped.imdbId;
+          if (mapped && mapped.mappedSeason && mapped.mappedEpisode) {
+            effectiveSeason = mapped.mappedSeason;
+            effectiveEpisode = mapped.mappedEpisode;
+          } else if (mapped && mapped.rawEpisodeNumber) {
+            effectiveEpisode = mapped.rawEpisodeNumber;
+          }
+          mark("tmdb_mapping_done", { ok: Boolean(imdbId) });
         }
         if (!imdbId && tmdbId) imdbId = contextImdbId || (yield getImdbId(tmdbId, type));
         mark("imdb_resolve_done", { ok: Boolean(imdbId) });
         if (!imdbId) return [];
-        const numericId = imdbId.replace("tt", "");
         const isMovie = String(type).toLowerCase() === "movie";
         const contentTitle = (yield getTitleFromIds(imdbId, tmdbId, type)) || (isMovie ? "Film" : "Serie");
         const displayName = isMovie ? contentTitle : `${contentTitle} ${effectiveSeason}x${effectiveEpisode}`;
         const streams = [];
-        const vidxgoUrl = isMovie ? `https://v.vidxgo.co/${numericId}` : `https://v.vidxgo.co/${numericId}/${effectiveSeason}/${effectiveEpisode}`;
+        const vidxgoUrl = isMovie ? `https://v.vidxgo.co/${imdbId}` : `https://v.vidxgo.co/${imdbId}/${effectiveSeason}/${effectiveEpisode}`;
         const shouldUseEasyProxy = Boolean(providerContext && providerContext.proxyUrl);
         let vidxgoStream = null;
+        const extracted = yield extractVidxGo(vidxgoUrl, "https://altadefinizione.you/");
+        if (!extracted) {
+          return [];
+        }
         if (shouldUseEasyProxy) {
           vidxgoStream = {
             url: vidxgoUrl,
@@ -616,12 +659,16 @@ if (!IS_SERVER) {
             headers: null
           };
         } else {
-          vidxgoStream = yield extractVidxGo(vidxgoUrl, "https://altadefinizione.you/");
+          vidxgoStream = extracted;
         }
         if (vidxgoStream && vidxgoStream.url) {
           let quality = "HD";
-          const detectedQuality = shouldUseEasyProxy ? null : yield checkQualityFromPlaylist(vidxgoStream.url, vidxgoStream.headers);
-          if (detectedQuality) quality = detectedQuality;
+          let hasItalian = false;
+          if (!shouldUseEasyProxy) {
+            const detectedQuality = yield checkQualityFromPlaylist(vidxgoStream.url, vidxgoStream.headers);
+            if (detectedQuality) quality = detectedQuality;
+            hasItalian = yield checkItalianAudioInPlaylist(vidxgoStream.url, vidxgoStream.headers);
+          }
           streams.push({
             url: vidxgoStream.url,
             easyProxySourceUrl: vidxgoUrl,
@@ -629,7 +676,8 @@ if (!IS_SERVER) {
             name: "VidxGo",
             title: displayName,
             quality: getQualityFromName(quality),
-            type: "direct"
+            type: "direct",
+            language: hasItalian ? "Italian" : ""
           });
         }
         mark("vidxgo_extracted", { ok: Boolean(vidxgoStream && vidxgoStream.url) });
@@ -648,7 +696,7 @@ if (!IS_SERVER) {
       }
     });
   };
-  getMappingApiUrl2 = getMappingApiUrl, normalizeConfigBoolean2 = normalizeConfigBoolean, getMappingLanguage2 = getMappingLanguage, getQualityFromName2 = getQualityFromName, getImdbId2 = getImdbId, getTitleFromIds2 = getTitleFromIds, getIdsFromKitsu2 = getIdsFromKitsu, getStreams2 = getStreams;
+  getMappingApiUrl2 = getMappingApiUrl, normalizeConfigBoolean2 = normalizeConfigBoolean, getMappingLanguage2 = getMappingLanguage, getQualityFromName2 = getQualityFromName, getImdbId2 = getImdbId, getTitleFromIds2 = getTitleFromIds, getIdsFromMapping2 = getIdsFromMapping, getStreams2 = getStreams;
   __async2 = (__this, __arguments, generator) => {
     return new Promise((resolve, reject) => {
       var fulfilled = (value) => {
@@ -673,7 +721,7 @@ if (!IS_SERVER) {
   const USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36";
   const { extractVidxGo } = require_vidxgo();
   require_fetch_helper();
-  const { checkQualityFromPlaylist } = require_quality_helper();
+  const { checkQualityFromPlaylist, checkItalianAudioInPlaylist } = require_quality_helper();
   const { formatStream } = require_formatter();
   const STEP_BENCH_ENABLED = String(process.env.PROVIDER_STEP_BENCH || "").trim().toLowerCase() === "1";
   module.exports = { getStreams };
@@ -685,5 +733,5 @@ var getMappingLanguage2;
 var getQualityFromName2;
 var getImdbId2;
 var getTitleFromIds2;
-var getIdsFromKitsu2;
+var getIdsFromMapping2;
 var getStreams2;
