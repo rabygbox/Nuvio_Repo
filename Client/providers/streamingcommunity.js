@@ -106,7 +106,7 @@ var require_formatter = __commonJS({
       } else if (stream.title && (stream.title.includes("SUB ITA") || stream.title.includes("SUB"))) {
         language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
       } else if (language === void 0 || language === null) {
-        language = "🇮🇹";
+        language = "";
       }
       let details = [];
       if (stream.size) details.push(`\u{1F4E6} ${stream.size}`);
@@ -119,7 +119,7 @@ var require_formatter = __commonJS({
         pName = pName.charAt(0).toUpperCase() + pName.slice(1);
       }
       if (pName) {
-        pName = `🍿 •Play`;
+        pName = `\u{1F4E1} ${pName}`;
       }
       const behaviorHints = stream.behaviorHints && typeof stream.behaviorHints === "object" ? __spreadValues({}, stream.behaviorHints) : {};
       let finalHeaders = stream.headers;
@@ -556,7 +556,8 @@ function getStreams(id, type, season, episode, providerContext = null) {
         console.log("[StreamingCommunity] Could not find playlist info in HTML");
         return [];
       }
-      const streamUrl = `${masterPlaylist.url}?token=${encodeURIComponent(masterPlaylist.token)}&expires=${encodeURIComponent(masterPlaylist.expires)}&h=1&lang=it`;
+      const separator = masterPlaylist.url.includes("?") ? "&" : "?";
+      const streamUrl = `${masterPlaylist.url}${separator}token=${encodeURIComponent(masterPlaylist.token)}&expires=${encodeURIComponent(masterPlaylist.expires)}&h=1&lang=it`;
       const streamHeaders = getPlaylistHeaders(embedUrl);
       console.log(`[StreamingCommunity] Final stream URL: ${streamUrl}`);
       let quality = "1080p";
