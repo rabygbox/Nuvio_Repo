@@ -147,7 +147,7 @@
     },
     {
       "id": "easystreams-cb01",
-      "name": "VidxGo",
+      "name": "CB01",
       "version": "1.0.2",
       "description": "Streams from VidxGo",
       "resources": ["stream"],
