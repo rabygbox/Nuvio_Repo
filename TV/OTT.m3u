@@ -1,6 +1,6 @@
 #EXTM3U url-tvg="" billed-till="" billed-msg=" 💬 / 👤 Graziano" max-conn=""
 #EXTINF:-1 tvg-id="rai1" tvg-name="Rai 1" group-title="Top Italia",Rai 1
-https://viamotionhsi.netplus.ch/live/eds/rai1/browser-dash/rai1.mpd
+https://zba6-5-hls7-live.zahs.tv/HD_rai1/m.m3u8?z32=MF2WI2LPL5RW6ZDFMNZT2YLBMMTGG43JMQ6TCOCCHE4TEOBYGQZTANRQGBBDILJTIU2EEOKFG43DEOKFHFCTANBUEZWWC6DSMF2GKPJVGAYDAJTNNFXHEYLUMU6TEMJQEZYHEZLGMVZHEZLEL5WGC3THOVQWOZJ5NF2CM43JM46TSX3BGJRTANLEMEZGMN3BG44WEYRWGM3WGMBUGJRDENZQGQZDMZRWMQTHG5LCORUXI3DFOM6WQ2LEMRSW4LLTMRUCM5LTMVZF62LEHV2GK3DFMJXXSOR2GY3TGMBSGQYDKNJGOY6TA
 
 #EXTINF:-1 tvg-id="rai2" tvg-name="Rai 2" group-title="Top Italia",Rai 2
 https://viamotionhsi.netplus.ch/live/eds/rai2/browser-dash/rai2.mpd
