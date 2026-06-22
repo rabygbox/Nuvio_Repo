@@ -321,7 +321,7 @@ var require_quality_helper = __commonJS({
 // cf_bypass.js
 var require_cf_bypass = __commonJS({
   "cf_bypass.js"(exports2, module2) {
-    var { spawn } = require("child_process");
+    var { spawn, exec } = require("child_process");
     var path = require("path");
     var fs = require("fs");
     var activeBypasses = /* @__PURE__ */ new Map();
@@ -330,6 +330,8 @@ var require_cf_bypass = __commonJS({
     var MAX_GLOBAL_CONCURRENT = parseInt(process.env.SCRAPLING_MAX_CONCURRENT || "2", 10);
     var MAX_GLOBAL_QUEUE = parseInt(process.env.SCRAPLING_MAX_QUEUE || "20", 10);
     var GLOBAL_QUEUE_TIMEOUT = parseInt(process.env.SCRAPLING_QUEUE_TIMEOUT_MS || "60000", 10);
+    var SCRAPLING_DEFAULT_TIMEOUT = parseInt(process.env.SCRAPLING_DEFAULT_TIMEOUT_MS || "90000", 10);
+    var SCRAPLING_WATCHDOG_GRACE_MS = parseInt(process.env.SCRAPLING_WATCHDOG_GRACE_MS || "15000", 10);
     function createRelease() {
       let released = false;
       return () => {
@@ -385,7 +387,7 @@ var require_cf_bypass = __commonJS({
           scriptPath,
           url,
           "--timeout",
-          String(options.timeout || 6e4),
+          String(options.timeout || SCRAPLING_DEFAULT_TIMEOUT),
           "--wait-until",
           options.waitUntil || "domcontentloaded"
         ];
@@ -406,16 +408,36 @@ var require_cf_bypass = __commonJS({
         } else if (process.platform === "win32") {
           pythonExe = "python";
         }
-        const child = spawn(pythonExe, args);
+        const spawnOptions = {};
+        if (process.platform !== "win32") {
+          spawnOptions.detached = true;
+        }
+        const child = spawn(pythonExe, args, spawnOptions);
         let stdout = "";
         let stderr = "";
-        const executionTimeout = (parseInt(options.timeout, 10) || 6e4) + 1e4;
+        const executionTimeout = (parseInt(options.timeout, 10) || SCRAPLING_DEFAULT_TIMEOUT) + SCRAPLING_WATCHDOG_GRACE_MS;
         let watchdog = setTimeout(() => {
-          console.error(`[SC][${provider}] Watchdog timeout raggiunto (${executionTimeout}ms). Uccido il processo Python.`);
+          console.error(`[SC][${provider}] Watchdog timeout raggiunto (${executionTimeout}ms). Uccido l'albero dei processi.`);
           watchdog = null;
-          try {
-            child.kill("SIGKILL");
-          } catch (e) {
+          if (process.platform === "win32") {
+            exec(`taskkill /pid ${child.pid} /T /F`, (err) => {
+              if (err) {
+                console.error(`[SC][${provider}] taskkill fallito: ${err.message}`);
+                try {
+                  child.kill("SIGKILL");
+                } catch (e) {
+                }
+              }
+            });
+          } else {
+            try {
+              process.kill(-child.pid, "SIGKILL");
+            } catch (e) {
+              try {
+                child.kill("SIGKILL");
+              } catch (err) {
+              }
+            }
           }
         }, executionTimeout);
         child.on("error", (err) => {
@@ -495,6 +517,19 @@ var require_cf_bypass = __commonJS({
         if (activeBypasses.has(provider)) {
           return activeBypasses.get(provider);
         }
+        let existingCookies = "";
+        if (fs.existsSync(sessionFile)) {
+          try {
+            const data = JSON.parse(fs.readFileSync(sessionFile, "utf8"));
+            if (data && data.cookies) existingCookies = data.cookies;
+          } catch (e) {
+          }
+        }
+        if (existingCookies) {
+          const existingHeaders = options.headers || {};
+          existingHeaders.Cookie = existingCookies;
+          options.headers = existingHeaders;
+        }
         const bypassPromise = runBypass(url, provider, options, sessionFile).finally(() => {
           activeBypasses.delete(provider);
         });
@@ -505,7 +540,7 @@ var require_cf_bypass = __commonJS({
     function hasActiveBypass(provider) {
       return activeBypasses.has(provider);
     }
-    module2.exports = { getClearance, hasActiveBypass, getStats: () => ({ active: activeGlobalRequests, queued: globalQueue.length }) };
+    module2.exports = { getClearance, hasActiveBypass, execPythonBypass, getStats: () => ({ active: activeGlobalRequests, queued: globalQueue.length }) };
   }
 });
 
@@ -7890,13 +7925,6 @@ var require_loadm = __commonJS({
   "src/extractors/loadm.js"(exports2, module2) {
     var CryptoJS = require_crypto_js();
     var { USER_AGENT } = require_common();
-    var STREAMINGCOMMUNITY_PROXY = typeof process !== "undefined" && process.env.STREAMINGCOMMUNITY_PROXY || "";
-    var ProxyAgent = null;
-    try {
-      ProxyAgent = require("undici").ProxyAgent;
-    } catch (_) {
-      ProxyAgent = null;
-    }
     function extractLoadm(playerUrl, referer = "guardoserie.horse") {
       return __async(this, null, function* () {
         try {
@@ -7908,24 +7936,13 @@ var require_loadm = __commonJS({
           const key = CryptoJS.enc.Utf8.parse("kiemtienmua911ca");
           const iv = CryptoJS.enc.Utf8.parse("1234567890oiuytr");
           const queryParams = `id=${encodeURIComponent(id)}&w=2560&h=1440&r=${encodeURIComponent(referer)}`;
-          let response = yield fetch(`${apiUrl}?${queryParams}`, {
+          const response = yield fetch(`${apiUrl}?${queryParams}`, {
             headers: {
               "User-Agent": USER_AGENT,
               "Referer": baseUrl,
               "X-Requested-With": "XMLHttpRequest"
             }
           });
-          if (!response.ok && response.status === 429 && STREAMINGCOMMUNITY_PROXY && ProxyAgent) {
-            console.log(`[Loadm] Rate limited, retrying via SOCKS5 proxy`);
-            response = yield fetch(`${apiUrl}?${queryParams}`, {
-              headers: {
-                "User-Agent": USER_AGENT,
-                "Referer": baseUrl,
-                "X-Requested-With": "XMLHttpRequest"
-              },
-              dispatcher: new ProxyAgent(STREAMINGCOMMUNITY_PROXY)
-            });
-          }
           if (!response.ok) {
             const errorBody = yield response.text().catch(() => "");
             console.error(`[Loadm] API error: ${response.status} | Body: ${errorBody.substring(0, 100)}`);
@@ -8201,7 +8218,7 @@ if (!IS_SERVER) {
   };
 } else {
   let getGuardoserieBaseUrl = function() {
-    return "https://guardoserie.world";
+    return "https://guardoserie.living";
   }, getMappingApiUrl = function() {
     return "https://animemapping.realbestia.com";
   }, normalizeConfigBoolean = function(value) {
@@ -8729,7 +8746,7 @@ if (!IS_SERVER) {
       const streamPromises = playerLinks.map((playerLink) => __async(null, null, function* () {
         try {
           if (playerLink.includes("loadm")) {
-            const domain = "guardoserie.world";
+            const domain = "guardoserie.living";
             const extracted = yield extractLoadm(playerLink, domain);
             return yield Promise.all((extracted || []).map((s) => __async(null, null, function* () {
               let quality = "HD";
