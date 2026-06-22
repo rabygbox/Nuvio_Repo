@@ -107,7 +107,7 @@ var require_formatter = __commonJS({
       } else if (stream.title && (stream.title.includes("SUB ITA") || stream.title.includes("SUB"))) {
         language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
       } else if (language === void 0 || language === null) {
-        language = "🌐";
+        language = "";
       }
       let details = [];
       if (stream.size) details.push(`\u{1F4E6} ${stream.size}`);
@@ -120,7 +120,7 @@ var require_formatter = __commonJS({
         pName = pName.charAt(0).toUpperCase() + pName.slice(1);
       }
       if (pName) {
-        pName = `🍿 •Play`;
+        pName = `\u{1F4E1} ${pName}`;
       }
       const behaviorHints = stream.behaviorHints && typeof stream.behaviorHints === "object" ? __spreadValues({}, stream.behaviorHints) : {};
       let finalHeaders = stream.headers;
@@ -300,7 +300,7 @@ function getMappingLanguage(providerContext = null) {
 function fetchViaWorker(url) {
   return __async(this, null, function* () {
     const path = url.startsWith("http") ? new URL(url).pathname + new URL(url).search : url;
-    const targetUrl = ("https://" + base64Decode("Y2MubGVhbmhodTA2MTIwNi53b3JrZXJzLmRldg==")).replace(/\/+$/, "") + (path.startsWith("/") ? path : "/" + path);
+    const targetUrl = ("https://" + base64Decode("Y2MucmVhbGJlc3RpYS5jb20=")).replace(/\/+$/, "") + (path.startsWith("/") ? path : "/" + path);
     const response = yield fetchWithTimeout(targetUrl, {
       timeout: FETCH_TIMEOUT,
       headers: { "User-Agent": USER_AGENT }
@@ -403,7 +403,7 @@ function fetchSitemapEntries(providerContext = null) {
       return sitemapCache.entries;
     }
     console.log("[CinemaCity] Fetching sitemap catalog...");
-    let sitemapProxy = "https://" + base64Decode("Y2MubGVhbmhodTA2MTIwNi53b3JrZXJzLmRldg==");
+    let sitemapProxy = "https://" + base64Decode("Y2MucmVhbGJlc3RpYS5jb20=");
     const sitemapPath = SITEMAP_URL.startsWith("http") ? new URL(SITEMAP_URL).pathname : SITEMAP_URL;
     if (sitemapProxy) {
       const firstPageUrl = sitemapProxy.endsWith("/") ? `${sitemapProxy.slice(0, -1)}${sitemapPath}?page=1&perPage=500` : `${sitemapProxy}${sitemapPath}?page=1&perPage=500`;
