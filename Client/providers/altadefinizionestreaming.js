@@ -244,6 +244,15 @@ var require_formatter = __commonJS({
       const normalized = String(providerName || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
       return normalized || void 0;
     }
+    function normalizeEpisodeTemplate(value) {
+      return String(value || "").replace(
+        /\b(\d{1,3})[xX](\d{1,3})\b/g,
+        (_, season, episode) => `S${season.padStart(2, "0")}E${episode.padStart(2, "0")}`
+      ).replace(
+        /\bS(\d{1,3})\s*E(\d{1,3})\b/gi,
+        (_, season, episode) => `S${season.padStart(2, "0")}E${episode.padStart(2, "0")}`
+      );
+    }
     function formatStream2(stream, providerName) {
       let quality = stream.quality || "";
       if (quality === "2160p") quality = "\u{1F525}4K UHD";
@@ -252,13 +261,14 @@ var require_formatter = __commonJS({
       else if (quality === "720p") quality = "\u{1F4BF} HD";
       else if (quality === "576p" || quality === "480p" || quality === "360p" || quality === "240p") quality = "\u{1F4A9} Low Quality";
       else if (!quality || ["auto", "unknown", "unknow"].includes(String(quality).toLowerCase())) quality = "\u{1F4BF} HD";
-      let title = `\u{1F4C1} ${stream.title || "Stream"}`;
+      const normalizedTitle = normalizeEpisodeTemplate(stream.title || "Stream");
+      let title = `\u{1F4C1} ${normalizedTitle}`;
       let language = stream.language;
       if (language === "Italian") {
         language = "\u{1F1EE}\u{1F1F9}";
       } else if (stream.name && (stream.name.includes("SUB ITA") || stream.name.includes("SUB"))) {
         language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
-      } else if (stream.title && (stream.title.includes("SUB ITA") || stream.title.includes("SUB"))) {
+      } else if (normalizedTitle.includes("SUB ITA") || normalizedTitle.includes("SUB")) {
         language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
       } else if (language === void 0 || language === null) {
         language = "";
@@ -303,7 +313,7 @@ var require_formatter = __commonJS({
         delete behaviorHints.notWebReady;
       }
       const finalName = pName;
-      let finalTitle = `\u{1F4C1} ${stream.title || "Stream"}`;
+      let finalTitle = `\u{1F4C1} ${normalizedTitle}`;
       if (desc) finalTitle += ` | ${desc}`;
       if (language) finalTitle += ` | ${language}`;
       const playbackReferer = stream.referer || (finalHeaders == null ? void 0 : finalHeaders.Referer) || (finalHeaders == null ? void 0 : finalHeaders.referer);
@@ -316,7 +326,7 @@ var require_formatter = __commonJS({
         providerName: pName,
         qualityTag: quality,
         description: desc,
-        originalTitle: stream.title || "Stream",
+        originalTitle: normalizedTitle,
         // Ensure language is set for Stremio/Nuvio sorting
         language,
         // Mark as formatted
@@ -475,7 +485,7 @@ var require_quality_helper = __commonJS({
 
 // src/altadefinizionestreaming/index.js
 var TMDB_API_KEY = "68e094699525b18a70bab2f86b1fa706";
-var BASE_URL = "https://altadefinizionestreaming.com";
+var BASE_URL = "https://altadefinizionestreaming.tv";
 var USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36";
 var SESSION_COOKIE = "sid=32234dfabd14e587764e84405e75e99856c6bef31c6b1752e19897b8ae3d4a21";
 var { extractMixDrop } = require_mixdrop();
