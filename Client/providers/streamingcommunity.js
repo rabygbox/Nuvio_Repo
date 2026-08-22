@@ -253,13 +253,20 @@ var require_quality_helper = __commonJS({
   "src/quality_helper.js"(exports2, module2) {
     var { createTimeoutSignal } = require_fetch_helper();
     var USER_AGENT2 = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36";
+    function checkQualityFromText2(text) {
+      if (!text) return null;
+      if (/RESOLUTION=\d+x2160/i.test(text) || /RESOLUTION=2160/i.test(text)) return "4K";
+      if (/RESOLUTION=\d+x1440/i.test(text) || /RESOLUTION=1440/i.test(text)) return "1440p";
+      if (/RESOLUTION=\d+x1080/i.test(text) || /RESOLUTION=1080/i.test(text)) return "1080p";
+      if (/RESOLUTION=\d+x720/i.test(text) || /RESOLUTION=720/i.test(text)) return "720p";
+      if (/RESOLUTION=\d+x480/i.test(text) || /RESOLUTION=480/i.test(text)) return "480p";
+      return null;
+    }
     function checkQualityFromPlaylist(_0) {
       return __async(this, arguments, function* (url, headers = {}) {
         try {
           const finalHeaders = __spreadValues({}, headers);
-          if (!finalHeaders["User-Agent"]) {
-            finalHeaders["User-Agent"] = USER_AGENT2;
-          }
+          if (!finalHeaders["User-Agent"]) finalHeaders["User-Agent"] = USER_AGENT2;
           const timeoutConfig = createTimeoutSignal(3e3);
           try {
             const response = yield fetch(url, {
@@ -273,45 +280,12 @@ var require_quality_helper = __commonJS({
             if (quality) console.log(`[QualityHelper] Detected ${quality} from playlist: ${url}`);
             return quality;
           } finally {
-            if (typeof timeoutConfig.cleanup === "function") {
-              timeoutConfig.cleanup();
-            }
+            if (typeof timeoutConfig.cleanup === "function") timeoutConfig.cleanup();
           }
-        } catch (e) {
+        } catch (_) {
           return null;
         }
       });
-    }
-    function checkItalianAudioInPlaylist(_0) {
-      return __async(this, arguments, function* (url, headers = {}) {
-        try {
-          const finalHeaders = __spreadValues({}, headers);
-          if (!finalHeaders["User-Agent"]) finalHeaders["User-Agent"] = USER_AGENT2;
-          const timeoutConfig = createTimeoutSignal(3e3);
-          try {
-            const response = yield fetch(url, { headers: finalHeaders, signal: timeoutConfig.signal });
-            if (!response.ok) return false;
-            const text = yield response.text();
-            if (!text.startsWith("#EXTM3U")) return false;
-            const hasAudioTags = /#EXT-X-MEDIA:TYPE=AUDIO/i.test(text);
-            if (!hasAudioTags) return true;
-            return /#EXT-X-MEDIA:TYPE=AUDIO.*(?:LANGUAGE="it"|LANGUAGE="ita"|NAME="Italian"|NAME="Ita")/i.test(text);
-          } finally {
-            if (typeof timeoutConfig.cleanup === "function") timeoutConfig.cleanup();
-          }
-        } catch (e) {
-          return false;
-        }
-      });
-    }
-    function checkQualityFromText2(text) {
-      if (!text) return null;
-      if (/RESOLUTION=\d+x2160/i.test(text) || /RESOLUTION=2160/i.test(text)) return "4K";
-      if (/RESOLUTION=\d+x1440/i.test(text) || /RESOLUTION=1440/i.test(text)) return "1440p";
-      if (/RESOLUTION=\d+x1080/i.test(text) || /RESOLUTION=1080/i.test(text)) return "1080p";
-      if (/RESOLUTION=\d+x720/i.test(text) || /RESOLUTION=720/i.test(text)) return "720p";
-      if (/RESOLUTION=\d+x480/i.test(text) || /RESOLUTION=480/i.test(text)) return "480p";
-      return null;
     }
     function getQualityFromUrl(url) {
       if (!url) return null;
@@ -324,13 +298,67 @@ var require_quality_helper = __commonJS({
       if (urlPath.includes("360")) return "360p";
       return null;
     }
-    module2.exports = { checkQualityFromPlaylist, getQualityFromUrl, checkQualityFromText: checkQualityFromText2, checkItalianAudioInPlaylist };
+    module2.exports = {
+      checkQualityFromPlaylist,
+      getQualityFromUrl,
+      checkQualityFromText: checkQualityFromText2
+    };
   }
 });
 
 // src/streamingcommunity/index.js
+var STREAMINGCOMMUNITY_CONFIG_URL = "https://raw.githubusercontent.com/realbestia1/domains/refs/heads/main/domains.json";
+var STREAMINGCOMMUNITY_DEFAULT_BASE_URL = "https://dancingmonkeyvideolover.xyz";
+var STREAMINGCOMMUNITY_BASE_URL_OVERRIDE = String(
+  typeof process !== "undefined" && process.env && process.env.STREAMINGCOMMUNITY_BASE_URL || ""
+).trim();
+var STREAMINGCOMMUNITY_MEDIA_HOST_OVERRIDE = String(
+  typeof process !== "undefined" && process.env && process.env.STREAMINGCOMMUNITY_MEDIA_HOST || ""
+).trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+function normalizeStreamingCommunityBaseUrl(value) {
+  try {
+    const parsed = new URL(String(value || "").trim());
+    if (!/^https?:$/i.test(parsed.protocol) || !parsed.hostname) return null;
+    return parsed.toString().replace(/\/+$/, "");
+  } catch (_) {
+    return null;
+  }
+}
+var streamingCommunityBaseUrl = normalizeStreamingCommunityBaseUrl(STREAMINGCOMMUNITY_BASE_URL_OVERRIDE) || STREAMINGCOMMUNITY_DEFAULT_BASE_URL;
+var streamingCommunityMediaHost = STREAMINGCOMMUNITY_MEDIA_HOST_OVERRIDE || new URL(streamingCommunityBaseUrl).hostname;
+var streamingCommunityConfigLoaded = Boolean(STREAMINGCOMMUNITY_BASE_URL_OVERRIDE);
+var streamingCommunityConfigPromise = null;
+function loadStreamingCommunityConfig() {
+  return __async(this, null, function* () {
+    if (streamingCommunityConfigLoaded) return streamingCommunityBaseUrl;
+    if (streamingCommunityConfigPromise) return yield streamingCommunityConfigPromise;
+    streamingCommunityConfigPromise = (() => __async(null, null, function* () {
+      try {
+        const response = yield fetch(STREAMINGCOMMUNITY_CONFIG_URL, {
+          headers: { Accept: "application/json" }
+        });
+        if (!response.ok) throw new Error(`Config HTTP ${response.status}`);
+        const config = yield response.json();
+        const nextBaseUrl = normalizeStreamingCommunityBaseUrl(config == null ? void 0 : config.vixsrc);
+        if (nextBaseUrl) {
+          streamingCommunityBaseUrl = nextBaseUrl;
+          if (!STREAMINGCOMMUNITY_MEDIA_HOST_OVERRIDE) {
+            streamingCommunityMediaHost = new URL(nextBaseUrl).hostname;
+          }
+        }
+      } catch (error) {
+        console.warn(`[StreamingCommunity] Domains config unavailable, using fallback: ${error.message}`);
+      } finally {
+        streamingCommunityConfigLoaded = true;
+        streamingCommunityConfigPromise = null;
+      }
+      return streamingCommunityBaseUrl;
+    }))();
+    return yield streamingCommunityConfigPromise;
+  });
+}
 function getStreamingCommunityBaseUrl() {
-  return "https://komiknostalgia.id";
+  return streamingCommunityBaseUrl;
 }
 var { formatStream } = require_formatter();
 require_fetch_helper();
@@ -521,17 +549,33 @@ function getEmbedHeaders(embedUrl) {
   };
 }
 function getPlaylistHeaders(embedUrl) {
-  const cleanReferer = String(embedUrl || "").replace("vixcloud.co", "komiknostalgia.id").replace("vixsrc.to", "komiknostalgia.id");
+  let origin = getStreamingCommunityBaseUrl();
+  try {
+    origin = new URL(embedUrl).origin;
+  } catch (_) {
+  }
   return {
     "User-Agent": USER_AGENT,
-    "Referer": cleanReferer,
-    "Origin": getStreamingCommunityBaseUrl(),
+    "Referer": embedUrl,
+    "Origin": origin,
     "Accept": "*/*",
     "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
     "Sec-Fetch-Dest": "empty",
     "Sec-Fetch-Mode": "cors",
     "Sec-Fetch-Site": "same-origin"
   };
+}
+function getResponseCookies(response) {
+  var _a, _b, _c;
+  try {
+    const cookies = typeof ((_a = response.headers) == null ? void 0 : _a.getSetCookie) === "function" ? response.headers.getSetCookie() : [(_c = (_b = response.headers) == null ? void 0 : _b.get) == null ? void 0 : _c.call(_b, "set-cookie")].filter(Boolean);
+    return cookies.map((value) => String(value).split(";", 1)[0]).filter(Boolean).join("; ");
+  } catch (_) {
+    return "";
+  }
+}
+function rewriteStreamingCommunityHost(value) {
+  return String(value || "").replace(/vixcloud\.co/gi, streamingCommunityMediaHost).replace(/vixsrc\.to/gi, streamingCommunityMediaHost);
 }
 function extractEmbedSrcFromApiPayload(payload) {
   const rawSrc = payload && typeof payload === "object" ? payload.src : null;
@@ -542,7 +586,7 @@ function extractEmbedSrcFromApiPayload(payload) {
     return null;
   }
 }
-function extractMasterPlaylistFromEmbedHtml(html) {
+function extractMasterPlaylistFromEmbedHtml(html, preferActiveStream = false) {
   if (!html) return null;
   const tokenMatch = html.match(/'token'\s*:\s*'([^']+)'/i);
   const expiresMatch = html.match(/'expires'\s*:\s*'([^']+)'/i);
@@ -550,10 +594,22 @@ function extractMasterPlaylistFromEmbedHtml(html) {
   if (!tokenMatch || !expiresMatch || !urlMatch) {
     return null;
   }
+  let playlistUrl = urlMatch[1];
+  if (preferActiveStream) {
+    const streamsMatch = html.match(/window\.streams\s*=\s*(\[[\s\S]*?\])\s*;\s*window\.masterPlaylist/i);
+    if (streamsMatch) {
+      try {
+        const streams = JSON.parse(streamsMatch[1]);
+        const selected = streams.find((stream) => (stream == null ? void 0 : stream.active) && (stream == null ? void 0 : stream.url)) || streams.find((stream) => stream == null ? void 0 : stream.url);
+        if (selected == null ? void 0 : selected.url) playlistUrl = selected.url;
+      } catch (_) {
+      }
+    }
+  }
   return {
     token: tokenMatch[1],
     expires: expiresMatch[1],
-    url: urlMatch[1]
+    url: playlistUrl
   };
 }
 function getQualityFromName(qualityStr) {
@@ -630,6 +686,7 @@ function getMetadata(id, type) {
 }
 function getStreams(id, type, season, episode, providerContext = null) {
   return __async(this, null, function* () {
+    yield loadStreamingCommunityConfig();
     const requestedType = String(type).toLowerCase();
     const normalizedType = requestedType === "series" ? "tv" : requestedType;
     const baseUrl = getStreamingCommunityBaseUrl();
@@ -702,6 +759,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
         const embedUrl = item.embedUrl;
         const isSczSource = item.source === "scz";
         let embedHtml;
+        let embedCookies = "";
         try {
           console.log(`[StreamingCommunity] Fetching embed (${item.source}): ${embedUrl}`);
           const embedResponse = yield fetch(embedUrl, {
@@ -712,6 +770,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
             console.error(`[StreamingCommunity] Failed to fetch embed: ${embedResponse.status}`);
             continue;
           }
+          embedCookies = getResponseCookies(embedResponse);
           embedHtml = yield embedResponse.text();
         } catch (e) {
           console.error(`[StreamingCommunity] Failed to fetch embed: ${e.message}`);
@@ -723,14 +782,22 @@ function getStreams(id, type, season, episode, providerContext = null) {
           console.log("[StreamingCommunity] Could not find playlist info in HTML");
           continue;
         }
-        const [playlistRawUrl, existingQuery] = masterPlaylist.url.split("?");
-        const urlWithExt = playlistRawUrl.endsWith(".m3u8") ? playlistRawUrl : `${playlistRawUrl}.m3u8`;
-        const queryParts = [existingQuery, `token=${encodeURIComponent(masterPlaylist.token)}`, `expires=${encodeURIComponent(masterPlaylist.expires)}`, "h=1", "lang=it"].filter(Boolean);
-        const rawStreamUrl = `${urlWithExt}?${queryParts.join("&")}`;
-        const streamUrl = rawStreamUrl.replace("vixcloud.co", "komiknostalgia.id").replace("vixsrc.to", "komiknostalgia.id");
-        const cleanEmbedUrl = embedUrl.replace("vixcloud.co", "komiknostalgia.id").replace("vixsrc.to", "komiknostalgia.id");
-        const cleanIframeUrl = (item.iframeUrl || cleanEmbedUrl).replace("vixcloud.co", "komiknostalgia.id").replace("vixsrc.to", "komiknostalgia.id");
-        const streamHeaders = getPlaylistHeaders(cleanEmbedUrl);
+        const embedParams = new URL(embedUrl).searchParams;
+        const playlistParams = [
+          ["token", masterPlaylist.token],
+          ["expires", masterPlaylist.expires],
+          ...embedParams.get("canPlayFHD") ? [["h", "1"]] : [],
+          ...embedParams.get("scz") ? [["scz", "1"]] : [],
+          ["lang", embedParams.get("lang") || "en"]
+        ];
+        const playlistSeparator = masterPlaylist.url.includes("?") ? "&" : "?";
+        const streamUrl = rewriteStreamingCommunityHost(
+          `${masterPlaylist.url}${playlistSeparator}${playlistParams.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&")}`
+        );
+        const cleanEmbedUrl = rewriteStreamingCommunityHost(embedUrl);
+        const cleanIframeUrl = rewriteStreamingCommunityHost(item.iframeUrl || cleanEmbedUrl);
+        const streamHeaders = getPlaylistHeaders(embedUrl);
+        if (embedCookies) streamHeaders.Cookie = embedCookies;
         console.log(`[StreamingCommunity] Final stream URL (${item.source}): ${streamUrl}`);
         let quality = "1080p";
         let hasItalianAudio = false;
