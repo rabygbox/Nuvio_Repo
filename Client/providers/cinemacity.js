@@ -101,7 +101,7 @@ var require_formatter = __commonJS({
     }
     function formatStream2(stream, providerName) {
       let quality = stream.quality || "";
-      if (quality === "2160p") quality = "\u{1F525}4K UHD";
+      if (["4k", "2160p"].includes(String(quality).toLowerCase())) quality = "\u{1F525}4K UHD";
       else if (quality === "1440p") quality = "\u2728 QHD";
       else if (quality === "1080p") quality = "\u{1F680} FHD";
       else if (quality === "720p") quality = "\u{1F4BF} HD";
@@ -290,6 +290,7 @@ function base64Decode(str) {
 var BASE_URL = base64Decode("aHR0cHM6Ly9jaW5lbWFjaXR5LmNj");
 var USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
 var FETCH_TIMEOUT = 1e4;
+var STREAM_CHECK_TIMEOUT = 1e3;
 var TMDB_API_KEY = "68e094699525b18a70bab2f86b1fa706";
 var SITEMAP_URL = `${BASE_URL}/news_pages.xml`;
 var SITEMAP_CACHE_MS = 60 * 60 * 1e3;
@@ -534,11 +535,15 @@ function verifyCandidateImdb(candidateUrl, expectedImdbId) {
       if (imdbId) {
         console.log(`[CinemaCity] IMDb check ${candidateUrl}: ${imdbId}`);
       }
-      return imdbId;
+      return { imdbId, html };
     } catch (e) {
       const status = getHttpStatusFromError(e);
-      if (status !== 403 && status !== 503 && !isCloudflareBlockedError(e)) {
-        console.error(`[CinemaCity] IMDb check error for ${candidateUrl}:`, e);
+      const message = (e == null ? void 0 : e.message) || String(e);
+      const isTimeout = (e == null ? void 0 : e.name) === "TimeoutError" || (e == null ? void 0 : e.name) === "AbortError" || /timed out|aborted due to timeout/i.test(message);
+      if (isTimeout) {
+        console.warn(`[CinemaCity] IMDb check timeout for ${candidateUrl}`);
+      } else if (status !== 403 && status !== 503 && !isCloudflareBlockedError(e)) {
+        console.error(`[CinemaCity] IMDb check error for ${candidateUrl}: ${message}`);
       }
       return null;
     }
@@ -593,12 +598,14 @@ function searchBySitemap(id, providerType, providerContext = null) {
       ranked.sort((a, b) => b.score - a.score);
       const candidatesToVerify = ranked.slice(0, 3);
       for (const candidate of candidatesToVerify) {
-        const candidateImdbId = yield verifyCandidateImdb(candidate.entry.url, expectedImdbId);
+        const verification = yield verifyCandidateImdb(candidate.entry.url, expectedImdbId);
+        const candidateImdbId = (verification == null ? void 0 : verification.imdbId) || null;
         if (candidateImdbId === expectedImdbId) {
           console.log(`[CinemaCity] Sitemap IMDb verified: ${expectedTitles[0]} -> ${candidate.entry.url}`);
           return {
             url: candidate.entry.url,
-            title: expectedTitles[0] || candidate.entry.title
+            title: expectedTitles[0] || candidate.entry.title,
+            html: verification.html
           };
         }
         if (candidateImdbId && candidateImdbId !== expectedImdbId) {
@@ -775,6 +782,43 @@ function resolveUrl(base, relative) {
     return relative;
   }
 }
+function checkStreamUrl(url) {
+  return __async(this, null, function* () {
+    const headers = {
+      "Referer": `${BASE_URL}/`,
+      "User-Agent": USER_AGENT
+    };
+    try {
+      const response = yield fetchWithTimeout(url, {
+        method: "HEAD",
+        timeout: STREAM_CHECK_TIMEOUT,
+        headers
+      });
+      return response.status !== 403;
+    } catch (e) {
+      return true;
+    }
+  });
+}
+function checkItalianAudioInPlaylist(url) {
+  return __async(this, null, function* () {
+    if (!/\.m3u8(?:[?#].*)?$/i.test(String(url || ""))) return false;
+    try {
+      const response = yield fetchWithTimeout(url, {
+        timeout: FETCH_TIMEOUT,
+        headers: {
+          Referer: `${BASE_URL}/`,
+          "User-Agent": USER_AGENT
+        }
+      });
+      if (!response.ok) return false;
+      const text = yield response.text();
+      return /#EXT-X-MEDIA:[^\r\n]*(?:LANGUAGE\s*=\s*"?(?:it|ita)"?|NAME\s*=\s*"?(?:Italian|Italiano)"?)/i.test(text);
+    } catch (e) {
+      return false;
+    }
+  });
+}
 function getStreams(id, type, season, episode, providerContext = null) {
   return __async(this, null, function* () {
     const parsedRequest = parseCompositeSeriesId(id, season, episode);
@@ -847,12 +891,14 @@ function getStreams(id, type, season, episode, providerContext = null) {
       const movieUrl = searchResult.url;
       const movieTitle = (searchResult.title || imdbId).replace(/\s*\(.*?\)\s*/g, "").trim();
       const title = type === "tv" || type === "series" ? `${movieTitle} ${season}x${episode}` : movieTitle;
-      let html;
-      try {
-        html = yield fetchViaWorker(movieUrl);
-      } catch (e) {
-        console.warn(`[CinemaCity] Worker fetch failed: ${e.message}`);
-        return [];
+      let html = typeof searchResult.html === "string" ? searchResult.html : null;
+      if (!html) {
+        try {
+          html = yield fetchViaWorker(movieUrl);
+        } catch (e) {
+          console.warn(`[CinemaCity] Worker fetch failed: ${e.message}`);
+          return [];
+        }
       }
       if (html.length < 500 || html.includes("Just a moment") || html.includes("admin") && html.includes("Unlimited")) {
         console.warn(`[CinemaCity] Page blocked or empty (${html.length} chars)`);
@@ -891,6 +937,17 @@ function getStreams(id, type, season, episode, providerContext = null) {
       }
       if (!selectedUrl) selectedUrl = links[0].url;
       const streamUrl = resolveUrl(movieUrl, selectedUrl);
+      if (!(yield checkStreamUrl(streamUrl))) {
+        console.warn(`[CinemaCity] Stream pre-check failed`);
+        return [];
+      }
+      if (/\.m3u8(?:[?#].*)?$/i.test(streamUrl)) {
+        hasItalian = yield checkItalianAudioInPlaylist(streamUrl);
+      }
+      if (!hasItalian) {
+        console.log(`[CinemaCity] Stream scartato: audio italiano non trovato`);
+        return [];
+      }
       console.log(`[CinemaCity] Direct stream: ${streamUrl}`);
       const result = {
         name: "CinemaCity",
