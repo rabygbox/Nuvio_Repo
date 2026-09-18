@@ -165,23 +165,18 @@ var require_formatter = __commonJS({
       const playbackReferer = stream.referer || (finalHeaders == null ? void 0 : finalHeaders.Referer) || (finalHeaders == null ? void 0 : finalHeaders.referer);
       const playbackUserAgent = stream.userAgent || (finalHeaders == null ? void 0 : finalHeaders["User-Agent"]) || (finalHeaders == null ? void 0 : finalHeaders["user-agent"]);
       return __spreadProps(__spreadValues({}, stream), {
-        // Keep original properties
         name: finalName,
         title: finalTitle,
-        // Metadata for Stremio UI reconstruction (safer names for RN)
         providerName: pName,
         qualityTag: quality,
         description: desc,
         originalTitle: normalizedTitle,
-        // Ensure language is set for Stremio/Nuvio sorting
         language,
-        // Mark as formatted
         _nuvio_formatted: true,
         behaviorHints,
         provider: stream.provider || normalizeProviderId(providerName),
         referer: playbackReferer,
         userAgent: playbackUserAgent,
-        // Explicitly ensure root headers are preserved for Nuvio
         headers: finalHeaders
       });
     }
@@ -253,6 +248,12 @@ var require_fetch_helper = __commonJS({
 var { formatStream } = require_formatter();
 var { fetchWithTimeout } = require_fetch_helper();
 var BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+
+// --- LOGIN KONFIGURATION ---
+var LOGIN_EMAIL = "lisa.fremd@web.de";
+var LOGIN_PASSWORD = "L12345678f";
+var sessionCookie = null; // Speichert den Login-Cookie/Token für nachfolgende Requests
+
 function base64Decode(str) {
   try {
     if (typeof atob === "function") {
@@ -287,6 +288,7 @@ function base64Decode(str) {
     return "";
   }
 }
+
 var BASE_URL = base64Decode("aHR0cHM6Ly9jaW5lbWFjaXR5LmNj");
 var USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
 var FETCH_TIMEOUT = 1e4;
@@ -295,6 +297,42 @@ var TMDB_API_KEY = "68e094699525b18a70bab2f86b1fa706";
 var SITEMAP_URL = `${BASE_URL}/news_pages.xml`;
 var SITEMAP_CACHE_MS = 60 * 60 * 1e3;
 var sitemapCache = null;
+
+// Funktion zur Authentifizierung beim Server
+function loginAndGetSession() {
+  return __async(this, null, function* () {
+    if (sessionCookie) return sessionCookie;
+    try {
+      console.log(`[CinemaCity] Führe Login für ${LOGIN_EMAIL} aus...`);
+      const loginUrl = `${BASE_URL}/login`;
+      const response = yield fetchWithTimeout(loginUrl, {
+        method: "POST",
+        timeout: FETCH_TIMEOUT,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": USER_AGENT,
+          "Referer": `${BASE_URL}/`
+        },
+        body: new URLSearchParams({
+          email: LOGIN_EMAIL,
+          password: LOGIN_PASSWORD
+        }).toString()
+      });
+
+      const setCookie = response.headers.get("set-cookie");
+      if (setCookie) {
+        sessionCookie = setCookie.split(";")[0];
+        console.log("[CinemaCity] Login erfolgreich, Cookie empfangen.");
+      } else {
+        console.warn("[CinemaCity] Login gesendet, aber kein Set-Cookie Header empfangen.");
+      }
+    } catch (e) {
+      console.error("[CinemaCity] Login Fehler:", e.message || e);
+    }
+    return sessionCookie;
+  });
+}
+
 function getMappingApiUrl() {
   return "https://animemapping.realbestia.com";
 }
@@ -310,11 +348,18 @@ function getMappingLanguage(providerContext = null) {
 }
 function fetchViaWorker(url) {
   return __async(this, null, function* () {
+    const cookie = yield loginAndGetSession();
     const path = url.startsWith("http") ? new URL(url).pathname + new URL(url).search : url;
     const targetUrl = ("https://" + base64Decode("Y2MucmVhbGJlc3RpYS5jb20=")).replace(/\/+$/, "") + (path.startsWith("/") ? path : "/" + path);
+    
+    const headers = { "User-Agent": USER_AGENT };
+    if (cookie) {
+      headers["Cookie"] = cookie;
+    }
+
     const response = yield fetchWithTimeout(targetUrl, {
       timeout: FETCH_TIMEOUT,
-      headers: { "User-Agent": USER_AGENT }
+      headers
     });
     if (!response.ok) throw new Error(`Worker HTTP ${response.status}`);
     return yield response.text();
@@ -348,39 +393,9 @@ function extractYearFromMetadata(metadata) {
 }
 function getSignificantTokens(value) {
   const stopwords = /* @__PURE__ */ new Set([
-    "the",
-    "a",
-    "an",
-    "of",
-    "and",
-    "in",
-    "on",
-    "to",
-    "for",
-    "at",
-    "by",
-    "is",
-    "it",
-    "il",
-    "lo",
-    "la",
-    "gli",
-    "le",
-    "un",
-    "uno",
-    "una",
-    "di",
-    "da",
-    "del",
-    "della",
-    "dei",
-    "e",
-    "o",
-    "con",
-    "per",
-    "su",
-    "tra",
-    "fra"
+    "the", "a", "an", "of", "and", "in", "on", "to", "for", "at", "by", "is", "it", 
+    "il", "lo", "la", "gli", "le", "un", "uno", "una", "di", "da", "del", "della", 
+    "dei", "e", "o", "con", "per", "su", "tra", "fra"
   ]);
   return normalizeTitle(value).split(/\s+/).filter((token) => token.length > 1 && !stopwords.has(token));
 }
@@ -784,10 +799,13 @@ function resolveUrl(base, relative) {
 }
 function checkStreamUrl(url) {
   return __async(this, null, function* () {
+    const cookie = yield loginAndGetSession();
     const headers = {
       "Referer": `${BASE_URL}/`,
       "User-Agent": USER_AGENT
     };
+    if (cookie) headers["Cookie"] = cookie;
+
     try {
       const response = yield fetchWithTimeout(url, {
         method: "HEAD",
@@ -804,12 +822,16 @@ function checkItalianAudioInPlaylist(url) {
   return __async(this, null, function* () {
     if (!/\.m3u8(?:[?#].*)?$/i.test(String(url || ""))) return false;
     try {
+      const cookie = yield loginAndGetSession();
+      const headers = {
+        Referer: `${BASE_URL}/`,
+        "User-Agent": USER_AGENT
+      };
+      if (cookie) headers["Cookie"] = cookie;
+
       const response = yield fetchWithTimeout(url, {
         timeout: FETCH_TIMEOUT,
-        headers: {
-          Referer: `${BASE_URL}/`,
-          "User-Agent": USER_AGENT
-        }
+        headers
       });
       if (!response.ok) return false;
       const text = yield response.text();
@@ -821,6 +843,9 @@ function checkItalianAudioInPlaylist(url) {
 }
 function getStreams(id, type, season, episode, providerContext = null) {
   return __async(this, null, function* () {
+    // Vor dem Stream-Abruf authentifizieren
+    yield loginAndGetSession();
+
     const parsedRequest = parseCompositeSeriesId(id, season, episode);
     id = parsedRequest.normalizedId;
     season = parsedRequest.season;
@@ -949,6 +974,15 @@ function getStreams(id, type, season, episode, providerContext = null) {
         return [];
       }
       console.log(`[CinemaCity] Direct stream: ${streamUrl}`);
+
+      const resultHeaders = {
+        "Referer": "https://cinemacity.cc/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+      };
+      if (sessionCookie) {
+        resultHeaders["Cookie"] = sessionCookie;
+      }
+
       const result = {
         name: "CinemaCity",
         title,
@@ -957,10 +991,7 @@ function getStreams(id, type, season, episode, providerContext = null) {
         type: "hls",
         language: hasItalian ? "Italian" : "",
         behaviorHints: { notWebReady: true },
-        headers: {
-          "Referer": "https://cinemacity.cc/",
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
-        }
+        headers: resultHeaders
       };
       return [formatStream(result, "CinemaCity")];
     } catch (e) {
