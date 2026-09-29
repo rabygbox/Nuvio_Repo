@@ -81,28 +81,129 @@ var require_formatter = __commonJS({
         stream == null ? void 0 : stream.server,
         providerName
       ].filter(Boolean).join(" ").toLowerCase();
-      if (text.includes("mixdrop") || text.includes("m1xdrop") || text.includes("mxcontent")) {
-        return true;
-      }
-      if (text.includes("loadm") || text.includes("loadm.cam")) {
+      if (text.includes("loadm") || text.includes("loadm.cam") || text.includes("mixdrop") || text.includes("mxcontent")) {
         return true;
       }
       return false;
     }
+    function normalizeProviderId(providerName) {
+      const normalized = String(providerName || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+      return normalized || void 0;
+    }
+    function normalizeEpisodeTemplate(value) {
+      return String(value || "").replace(
+        /\b(\d{1,3})[xX](\d{1,3})\b/g,
+        (_, season, episode) => `S${season.padStart(2, "0")}E${episode.padStart(2, "0")}`
+      ).replace(
+        /\bS(\d{1,3})\s*E(\d{1,3})\b/gi,
+        (_, season, episode) => `S${season.padStart(2, "0")}E${episode.padStart(2, "0")}`
+      );
+    }
+    var EASYJACK_LANGUAGE_FLAGS = {
+      unknown: "\u{1F30E}",
+      ita: "\u{1F1EE}\u{1F1F9}",
+      italian: "\u{1F1EE}\u{1F1F9}",
+      eng: "\u{1F1EC}\u{1F1E7}",
+      english: "\u{1F1EC}\u{1F1E7}",
+      jpn: "\u{1F1EF}\u{1F1F5}",
+      japanese: "\u{1F1EF}\u{1F1F5}",
+      ko: "\u{1F1F0}\u{1F1F7}",
+      kor: "\u{1F1F0}\u{1F1F7}",
+      korean: "\u{1F1F0}\u{1F1F7}",
+      rus: "\u{1F1F7}\u{1F1FA}",
+      russian: "\u{1F1F7}\u{1F1FA}",
+      por: "\u{1F1F5}\u{1F1F9}",
+      portuguese: "\u{1F1F5}\u{1F1F9}",
+      fra: "\u{1F1EB}\u{1F1F7}",
+      fre: "\u{1F1EB}\u{1F1F7}",
+      french: "\u{1F1EB}\u{1F1F7}",
+      spa: "\u{1F1EA}\u{1F1F8}",
+      spanish: "\u{1F1EA}\u{1F1F8}",
+      ger: "\u{1F1E9}\u{1F1EA}",
+      deu: "\u{1F1E9}\u{1F1EA}",
+      german: "\u{1F1E9}\u{1F1EA}",
+      dut: "\u{1F1F3}\u{1F1F1}",
+      nld: "\u{1F1F3}\u{1F1F1}",
+      pol: "\u{1F1F5}\u{1F1F1}",
+      cze: "\u{1F1E8}\u{1F1FF}",
+      hun: "\u{1F1ED}\u{1F1FA}",
+      hrv: "\u{1F1ED}\u{1F1F7}",
+      ukr: "\u{1F1FA}\u{1F1E6}",
+      dan: "\u{1F1E9}\u{1F1F0}",
+      swe: "\u{1F1F8}\u{1F1EA}",
+      nor: "\u{1F1F3}\u{1F1F4}",
+      tur: "\u{1F1F9}\u{1F1F7}",
+      ara: "\u{1F1F8}\u{1F1E6}",
+      heb: "\u{1F1EE}\u{1F1F1}",
+      ind: "\u{1F1EE}\u{1F1E9}",
+      may: "\u{1F1F2}\u{1F1FE}",
+      tha: "\u{1F1F9}\u{1F1ED}"
+    };
+    function formatEasyJackLanguage(value) {
+      return String(value || "").trim().split(/\s*\/\s*/).map((part) => EASYJACK_LANGUAGE_FLAGS[part.trim().toLowerCase()] || part.trim()).filter(Boolean).join(" / ");
+    }
+    function formatEasyJackList(value) {
+      if (Array.isArray(value)) return value.flatMap(formatEasyJackList);
+      const text = String(value || "").trim();
+      return text ? text.split(/\s*(?:\||\/)\s*/).map((item) => item.trim()).filter(Boolean) : [];
+    }
+    function formatEasyJackFilename(stream, fallbackTitle = "Stream") {
+      var _a;
+      const raw = String(
+        ((_a = stream == null ? void 0 : stream.behaviorHints) == null ? void 0 : _a.filename) || (stream == null ? void 0 : stream.filename) || (stream == null ? void 0 : stream.fileName) || (stream == null ? void 0 : stream.debridFilename) || fallbackTitle || "Stream"
+      ).trim();
+      return raw.replace(/\\/g, "/").split("/").pop() || fallbackTitle || "Stream";
+    }
+    function formatEasyJackDescription(stream = {}, titleOverride = "") {
+      const filename = formatEasyJackFilename(stream, titleOverride || stream.originalTitle || stream.title);
+      const sourceQuality = String(
+        stream.releaseQuality || stream.sourceQuality || (stream.quality && !/^(?:4k|2160p|1440p|2k|1080p|fhd|720p|hd|576p|480p|360p|240p|sd|unknown)$/i.test(String(stream.quality).trim()) ? stream.quality : "")
+      ).trim();
+      const visualTags = formatEasyJackList(stream.visualTags || stream.visual_tags);
+      const encode = String(stream.encode || stream.videoCodec || stream.video_codec || "").trim();
+      const videoLine = [
+        sourceQuality ? `\u{1F3A5} ${sourceQuality}` : "",
+        visualTags.length > 0 ? `\u{1F4FA} ${visualTags.join(" | ")}` : "",
+        encode ? `\u{1F39E}\uFE0F ${encode}` : ""
+      ].filter(Boolean).join(" ");
+      const audioTags = formatEasyJackList(stream.audioTags || stream.audio_tags || stream.audioTag || stream.audioCodec || stream.audio_codec);
+      const audioChannels = formatEasyJackList(stream.audioChannels || stream.audio_channels || stream.audioChannel || stream.audio_channel);
+      const audioLine = [
+        audioTags.length > 0 ? `\u{1F3A7} ${audioTags.join(" | ")}` : "",
+        audioChannels.length > 0 ? `\u{1F50A} ${audioChannels.join(" | ")}` : ""
+      ].filter(Boolean).join(" ");
+      const languageValue = stream.languageDefaulted ? "UNKNOWN" : Array.isArray(stream.languageEmojis) && stream.languageEmojis.length > 0 ? stream.languageEmojis.join(" / ") : stream.language || "";
+      const language = formatEasyJackLanguage(languageValue);
+      const languageSizeLine = [
+        language ? `\u{1F5E3}\uFE0F ${language}` : "",
+        stream.size ? `\u{1F4BE} ${String(stream.size).trim()}` : ""
+      ].filter(Boolean).join(" ");
+      return [
+        `\u{1F4C1} ${filename}`,
+        videoLine,
+        audioLine,
+        languageSizeLine,
+        "\u{1F50D} EasyJack \u{1F4E1} EasyStreams"
+      ].filter(Boolean).join("\n");
+    }
     function formatStream2(stream, providerName) {
-      let quality = stream.quality || "";
-      if (quality === "2160p") quality = "\u{1F525}4K UHD";
+      let quality = stream.resolution || stream.quality || "";
+      if (["4k", "2160p"].includes(String(quality).toLowerCase())) quality = "\u{1F525}4K UHD";
       else if (quality === "1440p") quality = "\u2728 QHD";
       else if (quality === "1080p") quality = "\u{1F680} FHD";
       else if (quality === "720p") quality = "\u{1F4BF} HD";
       else if (quality === "576p" || quality === "480p" || quality === "360p" || quality === "240p") quality = "\u{1F4A9} Low Quality";
-      else if (!quality || ["auto", "unknown", "unknow"].includes(String(quality).toLowerCase())) quality = "Unknow";
-      let title = `\u{1F4C1} ${stream.title || "Stream"}`;
+      else if (!quality || ["auto", "unknown", "unknow"].includes(String(quality).toLowerCase())) quality = "\u{1F4BF} HD";
+      const normalizedTitle = normalizeEpisodeTemplate(stream.title || "Stream");
+      let title = `\u{1F4C1} ${normalizedTitle}`;
       let language = stream.language;
-      if (!language) {
-        if (stream.name && (stream.name.includes("SUB ITA") || stream.name.includes("SUB"))) language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
-        else if (stream.title && (stream.title.includes("SUB ITA") || stream.title.includes("SUB"))) language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
-        else language = "\u{1F1EE}\u{1F1F9}";
+      const isEasyJackProvider = String(providerName || "").trim().toLowerCase() === "easyjack";
+      if (isEasyJackProvider) {
+        language = formatEasyJackLanguage(language);
+      } else if (language === "Italian") {
+        language = "\u{1F1EE}\u{1F1F9}";
+      } else if (language === void 0 || language === null) {
+        language = "";
       }
       let details = [];
       if (stream.size) details.push(`\u{1F4E6} ${stream.size}`);
@@ -117,6 +218,7 @@ var require_formatter = __commonJS({
       if (pName) {
         pName = `\u{1F4E1} ${pName}`;
       }
+      const formattedDescription = isEasyJackProvider ? formatEasyJackDescription(stream, normalizedTitle) : desc;
       const behaviorHints = stream.behaviorHints && typeof stream.behaviorHints === "object" ? __spreadValues({}, stream.behaviorHints) : {};
       let finalHeaders = stream.headers;
       if (behaviorHints.proxyHeaders && behaviorHints.proxyHeaders.request) {
@@ -136,16 +238,21 @@ var require_formatter = __commonJS({
         behaviorHints.proxyHeaders.request = finalHeaders;
         behaviorHints.headers = finalHeaders;
       }
+      const providerExplicitNotWebReady = stream.behaviorHints && "notWebReady" in stream.behaviorHints;
       const shouldForceNotWebReady = shouldForceNotWebReadyForPlugin(stream, providerName, finalHeaders, behaviorHints);
       if (!isStreamingCommunityProvider && shouldForceNotWebReady) {
         behaviorHints.notWebReady = true;
-      } else {
+      } else if (!providerExplicitNotWebReady) {
         delete behaviorHints.notWebReady;
       }
       const finalName = pName;
-      let finalTitle = `\u{1F4C1} ${stream.title || "Stream"}`;
-      if (desc) finalTitle += ` | ${desc}`;
-      if (language) finalTitle += ` | ${language}`;
+      let finalTitle = isEasyJackProvider ? formattedDescription : `\u{1F4C1} ${normalizedTitle}`;
+      if (!isEasyJackProvider) {
+        if (desc) finalTitle += ` | ${desc}`;
+        if (language) finalTitle += ` | ${language}`;
+      }
+      const playbackReferer = stream.referer || (finalHeaders == null ? void 0 : finalHeaders.Referer) || (finalHeaders == null ? void 0 : finalHeaders.referer);
+      const playbackUserAgent = stream.userAgent || (finalHeaders == null ? void 0 : finalHeaders["User-Agent"]) || (finalHeaders == null ? void 0 : finalHeaders["user-agent"]);
       return __spreadProps(__spreadValues({}, stream), {
         // Keep original properties
         name: finalName,
@@ -153,18 +260,21 @@ var require_formatter = __commonJS({
         // Metadata for Stremio UI reconstruction (safer names for RN)
         providerName: pName,
         qualityTag: quality,
-        description: desc,
-        originalTitle: stream.title || "Stream",
+        description: formattedDescription,
+        originalTitle: normalizedTitle,
         // Ensure language is set for Stremio/Nuvio sorting
         language,
         // Mark as formatted
         _nuvio_formatted: true,
         behaviorHints,
+        provider: stream.provider || normalizeProviderId(providerName),
+        referer: playbackReferer,
+        userAgent: playbackUserAgent,
         // Explicitly ensure root headers are preserved for Nuvio
         headers: finalHeaders
       });
     }
-    module2.exports = { formatStream: formatStream2 };
+    module2.exports = { formatEasyJackDescription, formatStream: formatStream2 };
   }
 });
 
@@ -233,35 +343,6 @@ var require_quality_helper = __commonJS({
   "src/quality_helper.js"(exports2, module2) {
     var { createTimeoutSignal: createTimeoutSignal2 } = require_fetch_helper();
     var USER_AGENT2 = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36";
-    function checkQualityFromPlaylist2(_0) {
-      return __async(this, arguments, function* (url, headers = {}) {
-        try {
-          if (!url.includes(".m3u8")) return null;
-          const finalHeaders = __spreadValues({}, headers);
-          if (!finalHeaders["User-Agent"]) {
-            finalHeaders["User-Agent"] = USER_AGENT2;
-          }
-          const timeoutConfig = createTimeoutSignal2(3e3);
-          try {
-            const response = yield fetch(url, {
-              headers: finalHeaders,
-              signal: timeoutConfig.signal
-            });
-            if (!response.ok) return null;
-            const text = yield response.text();
-            const quality = checkQualityFromText(text);
-            if (quality) console.log(`[QualityHelper] Detected ${quality} from playlist: ${url}`);
-            return quality;
-          } finally {
-            if (typeof timeoutConfig.cleanup === "function") {
-              timeoutConfig.cleanup();
-            }
-          }
-        } catch (e) {
-          return null;
-        }
-      });
-    }
     function checkQualityFromText(text) {
       if (!text) return null;
       if (/RESOLUTION=\d+x2160/i.test(text) || /RESOLUTION=2160/i.test(text)) return "4K";
@@ -270,6 +351,32 @@ var require_quality_helper = __commonJS({
       if (/RESOLUTION=\d+x720/i.test(text) || /RESOLUTION=720/i.test(text)) return "720p";
       if (/RESOLUTION=\d+x480/i.test(text) || /RESOLUTION=480/i.test(text)) return "480p";
       return null;
+    }
+    function checkQualityFromPlaylist2(_0) {
+      return __async(this, arguments, function* (url, headers = {}, options = {}) {
+        try {
+          const finalHeaders = __spreadValues({}, headers);
+          if (!finalHeaders["User-Agent"]) finalHeaders["User-Agent"] = USER_AGENT2;
+          const timeoutConfig = createTimeoutSignal2(3e3);
+          try {
+            const fetcher = typeof options.fetcher === "function" ? options.fetcher : fetch;
+            const response = yield fetcher(url, {
+              headers: finalHeaders,
+              signal: timeoutConfig.signal
+            });
+            if (!response.ok) return null;
+            const text = yield response.text();
+            if (!text.startsWith("#EXTM3U")) return null;
+            const quality = checkQualityFromText(text);
+            if (quality) console.log(`[QualityHelper] Detected ${quality} from playlist: ${url}`);
+            return quality;
+          } finally {
+            if (typeof timeoutConfig.cleanup === "function") timeoutConfig.cleanup();
+          }
+        } catch (_) {
+          return null;
+        }
+      });
     }
     function getQualityFromUrl(url) {
       if (!url) return null;
@@ -282,7 +389,50 @@ var require_quality_helper = __commonJS({
       if (urlPath.includes("360")) return "360p";
       return null;
     }
-    module2.exports = { checkQualityFromPlaylist: checkQualityFromPlaylist2, getQualityFromUrl, checkQualityFromText };
+    module2.exports = {
+      checkQualityFromPlaylist: checkQualityFromPlaylist2,
+      getQualityFromUrl,
+      checkQualityFromText
+    };
+  }
+});
+
+// easyjack/anime_mapping.js
+var require_anime_mapping = __commonJS({
+  "easyjack/anime_mapping.js"(exports2, module2) {
+    "use strict";
+    var DEFAULT_ANIME_MAPPING_URL = "https://animemapping.realbestia.com";
+    var configuredAnimeMappingUrl = "";
+    function normalizeAnimeMappingUrl(value) {
+      const normalized = String(value || "").trim().replace(/\/+$/, "");
+      if (!normalized) return "";
+      try {
+        const parsed = new URL(normalized);
+        if (!["http:", "https:"].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password) {
+          return "";
+        }
+        if (parsed.search || parsed.hash) return "";
+        return parsed.toString().replace(/\/+$/, "");
+      } catch (e) {
+        return "";
+      }
+    }
+    function getAnimeMappingBaseUrl2() {
+      var _a;
+      const scraperSettings = typeof globalThis !== "undefined" && globalThis.SCRAPER_SETTINGS && typeof globalThis.SCRAPER_SETTINGS === "object" ? globalThis.SCRAPER_SETTINGS : null;
+      const configured = configuredAnimeMappingUrl || (scraperSettings == null ? void 0 : scraperSettings.animeMappingUrl) || (scraperSettings == null ? void 0 : scraperSettings.animeMappingURL) || (typeof globalThis !== "undefined" ? globalThis.EASYJACK_ANIME_MAPPING_URL : "") || (typeof process !== "undefined" ? (_a = process.env) == null ? void 0 : _a.EASYJACK_ANIME_MAPPING_URL : "");
+      return normalizeAnimeMappingUrl(configured) || DEFAULT_ANIME_MAPPING_URL;
+    }
+    function setAnimeMappingBaseUrl(value) {
+      configuredAnimeMappingUrl = normalizeAnimeMappingUrl(value);
+      return getAnimeMappingBaseUrl2();
+    }
+    module2.exports = {
+      DEFAULT_ANIME_MAPPING_URL,
+      getAnimeMappingBaseUrl: getAnimeMappingBaseUrl2,
+      normalizeAnimeMappingUrl,
+      setAnimeMappingBaseUrl
+    };
   }
 });
 
@@ -290,11 +440,12 @@ var require_quality_helper = __commonJS({
 var { formatStream } = require_formatter();
 var { checkQualityFromPlaylist } = require_quality_helper();
 var { createTimeoutSignal } = require_fetch_helper();
+var { getAnimeMappingBaseUrl } = require_anime_mapping();
 function getWorldBaseUrl() {
   return "https://www.animeworld.ac";
 }
 function getMappingApiBase() {
-  return "https://animemapping.realbestia.com";
+  return getAnimeMappingBaseUrl();
 }
 var USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
 var FETCH_TIMEOUT = 1e4;
@@ -316,6 +467,8 @@ var BLOCKED_DOMAINS = [
   "narutolegend.it"
 ];
 function getCached(map, key) {
+  const isReactNative = typeof navigator !== "undefined" && navigator.product === "ReactNative" || typeof global !== "undefined" && global.HermesInternal;
+  if (isReactNative) return void 0;
   const entry = map.get(key);
   if (!entry) return void 0;
   if (entry.expiresAt <= Date.now()) {
@@ -325,6 +478,20 @@ function getCached(map, key) {
   return entry.value;
 }
 function setCached(map, key, value, ttlMs) {
+  const isReactNative = typeof navigator !== "undefined" && navigator.product === "ReactNative" || typeof global !== "undefined" && global.HermesInternal;
+  if (isReactNative) return value;
+  for (const [k, entry] of map.entries()) {
+    if (entry.expiresAt <= Date.now()) {
+      map.delete(k);
+    }
+  }
+  const MAX_CACHE_ENTRIES = 500;
+  if (map.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = map.keys().next().value;
+    if (oldestKey !== void 0) {
+      map.delete(oldestKey);
+    }
+  }
   map.set(key, { value, expiresAt: Date.now() + ttlMs });
   return value;
 }
@@ -339,15 +506,8 @@ function uniqueStrings(values) {
   }
   return out;
 }
-function normalizeConfigBoolean(value) {
-  if (value === true) return true;
-  const normalized = String(value || "").trim().toLowerCase();
-  return ["1", "true", "yes", "on", "enabled", "checked"].includes(normalized);
-}
 function getMappingLanguage(providerContext = null) {
-  const explicit = String((providerContext == null ? void 0 : providerContext.mappingLanguage) || "").trim().toLowerCase();
-  if (explicit === "it") return "it";
-  return normalizeConfigBoolean(providerContext == null ? void 0 : providerContext.easyCatalogsLangIt) ? "it" : null;
+  return "it";
 }
 function decodeHtmlEntities(raw) {
   const decodedNumeric = String(raw || "").replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
@@ -376,6 +536,11 @@ function parsePositiveInt(value) {
 function normalizeRequestedEpisode(value) {
   const parsed = parsePositiveInt(value);
   return parsed || 1;
+}
+function resolveAnimeEpisode(provider, providerContext, fallbackEpisode) {
+  const requestedEpisode = parsePositiveInt(providerContext == null ? void 0 : providerContext.requestedEpisode);
+  const mappedEpisode = parsePositiveInt(fallbackEpisode);
+  return ["kitsu", "mal", "anilist", "anidb", "imdb", "tmdb", "tvdb"].includes(String(provider || "").toLowerCase()) ? normalizeRequestedEpisode(mappedEpisode || requestedEpisode) : normalizeRequestedEpisode(fallbackEpisode);
 }
 function normalizeRequestedSeason(value) {
   const parsed = Number.parseInt(String(value || ""), 10);
@@ -423,7 +588,7 @@ function inferSourceTag(title, animePath) {
   return "SUB";
 }
 function resolveLanguageEmoji(sourceTag) {
-  return String(sourceTag || "").toUpperCase() === "ITA" ? "\u{1F1EE}\u{1F1F9}" : "\u{1F1EF}\u{1F1F5}";
+  return String(sourceTag || "").toUpperCase() === "ITA" ? "\u{1F1EE}\u{1F1F9}" : "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
 }
 function sanitizeAnimeTitle(rawTitle) {
   let text = decodeHtmlEntities(rawTitle).trim();
@@ -819,6 +984,7 @@ function extractStreamsFromAnimePath(animePath, requestedEpisode, mediaType = "t
     const episodeLabel = getEpisodeDisplayLabel(selectedEpisode, normalizedEpisode);
     const displayTitle = episodeLabel ? `${baseTitle} - Ep ${episodeLabel}` : baseTitle;
     const streamLanguage = resolveLanguageEmoji(parsedPage.sourceTag);
+    const subtitleOnly = String(parsedPage.sourceTag || "").toUpperCase() !== "ITA";
     const streams = [];
     const seen = /* @__PURE__ */ new Set();
     for (const candidate of grabbers) {
@@ -846,6 +1012,7 @@ function extractStreamsFromAnimePath(animePath, requestedEpisode, mediaType = "t
         server: serverName,
         url: mediaUrl,
         language: streamLanguage,
+        subtitleOnly,
         quality: normalizeAnimeWorldQuality(quality),
         headers: {
           "User-Agent": USER_AGENT,
@@ -895,6 +1062,7 @@ function extractStreamsFromAnimePath(animePath, requestedEpisode, mediaType = "t
               server: serverName,
               url: mediaUrl,
               language: streamLanguage,
+              subtitleOnly,
               quality: normalizeAnimeWorldQuality(quality),
               headers: {
                 "User-Agent": USER_AGENT,
@@ -913,13 +1081,13 @@ function extractStreamsFromAnimePath(animePath, requestedEpisode, mediaType = "t
 function parseExplicitRequestId(rawId) {
   const value = String(rawId || "").trim();
   if (!value) return null;
-  let match = value.match(/^kitsu:(\d+)(?::(\d+))?(?::(\d+))?$/i);
+  let match = value.match(/^(kitsu|mal|anilist|anidb):(\d+)(?::(\d+))?(?::(\d+))?$/i);
   if (match) {
     return {
-      provider: "kitsu",
-      externalId: match[1],
-      seasonFromId: match[3] ? normalizeRequestedSeason(match[2]) : null,
-      episodeFromId: match[3] ? normalizeRequestedEpisode(match[3]) : match[2] ? normalizeRequestedEpisode(match[2]) : null
+      provider: match[1].toLowerCase(),
+      externalId: match[2],
+      seasonFromId: match[4] ? normalizeRequestedSeason(match[3]) : null,
+      episodeFromId: match[4] ? normalizeRequestedEpisode(match[4]) : match[3] ? normalizeRequestedEpisode(match[3]) : null
     };
   }
   match = value.match(/^imdb:(tt\d+)(?::(\d+))?(?::(\d+))?$/i);
@@ -971,13 +1139,15 @@ function resolveLookupRequest(id, season, episode, providerContext = null) {
   const explicit = parseExplicitRequestId(rawId);
   if (explicit) {
     const explicitSeason = Number.isInteger(explicit.seasonFromId) && explicit.seasonFromId >= 0 ? explicit.seasonFromId : null;
-    if (explicit.provider === "kitsu") {
+    if (["kitsu", "mal", "anilist", "anidb"].includes(explicit.provider)) {
       requestedSeason = explicitSeason;
     } else if (explicitSeason !== null) {
       requestedSeason = explicitSeason;
     }
     if (Number.isInteger(explicit.episodeFromId) && explicit.episodeFromId > 0) {
       requestedEpisode = explicit.episodeFromId;
+    } else if (["kitsu", "mal", "anilist", "anidb", "imdb", "tmdb", "tvdb"].includes(String(explicit.provider || "").toLowerCase())) {
+      requestedEpisode = resolveAnimeEpisode(explicit.provider, providerContext, requestedEpisode);
     }
     return {
       provider: explicit.provider,
@@ -992,7 +1162,34 @@ function resolveLookupRequest(id, season, episode, providerContext = null) {
       provider: "kitsu",
       externalId: String(contextKitsu),
       season: null,
-      episode: requestedEpisode
+      episode: resolveAnimeEpisode("kitsu", providerContext, requestedEpisode)
+    };
+  }
+  const contextMal = parsePositiveInt(providerContext == null ? void 0 : providerContext.malId);
+  if (contextMal) {
+    return {
+      provider: "mal",
+      externalId: String(contextMal),
+      season: null,
+      episode: resolveAnimeEpisode("mal", providerContext, requestedEpisode)
+    };
+  }
+  const contextAnilist = parsePositiveInt(providerContext == null ? void 0 : providerContext.anilistId);
+  if (contextAnilist) {
+    return {
+      provider: "anilist",
+      externalId: String(contextAnilist),
+      season: null,
+      episode: resolveAnimeEpisode("anilist", providerContext, requestedEpisode)
+    };
+  }
+  const contextAnidb = parsePositiveInt(providerContext == null ? void 0 : providerContext.anidbId);
+  if (contextAnidb) {
+    return {
+      provider: "anidb",
+      externalId: String(contextAnidb),
+      season: null,
+      episode: resolveAnimeEpisode("anidb", providerContext, requestedEpisode)
     };
   }
   const contextImdb = /^tt\d+$/i.test(String((providerContext == null ? void 0 : providerContext.imdbId) || "").trim()) ? String(providerContext.imdbId).trim() : null;
@@ -1001,7 +1198,7 @@ function resolveLookupRequest(id, season, episode, providerContext = null) {
       provider: "imdb",
       externalId: contextImdb,
       season: requestedSeason,
-      episode: requestedEpisode
+      episode: resolveAnimeEpisode("imdb", providerContext, requestedEpisode)
     };
   }
   const contextTmdb = /^\d+$/.test(String((providerContext == null ? void 0 : providerContext.tmdbId) || "").trim()) ? String(providerContext.tmdbId).trim() : null;
@@ -1010,7 +1207,7 @@ function resolveLookupRequest(id, season, episode, providerContext = null) {
       provider: "tmdb",
       externalId: contextTmdb,
       season: requestedSeason,
-      episode: requestedEpisode
+      episode: resolveAnimeEpisode("tmdb", providerContext, requestedEpisode)
     };
   }
   return null;
@@ -1022,9 +1219,9 @@ function fetchMappingPayload(lookup, providerContext = null) {
     const externalId = String(lookup.externalId || "").trim();
     const requestedEpisode = normalizeRequestedEpisode(lookup.episode);
     const requestedSeason = normalizeRequestedSeason(lookup.season);
-    if (!["kitsu", "imdb", "tmdb"].includes(provider)) return null;
+    if (!["kitsu", "mal", "anilist", "anidb", "imdb", "tmdb"].includes(provider)) return null;
     if (!externalId) return null;
-    const mappingLanguage = provider === "kitsu" ? "it" : getMappingLanguage(providerContext);
+    const mappingLanguage = ["kitsu", "mal", "anilist", "anidb"].includes(provider) ? "it" : getMappingLanguage(providerContext);
     const mappingLanguageToken = mappingLanguage || "default";
     const cacheKey = `${provider}:${externalId}:s=${requestedSeason != null ? requestedSeason : "na"}:ep=${requestedEpisode}:lang=${mappingLanguageToken}`;
     const cached = getCached(caches.mapping, cacheKey);
@@ -1073,12 +1270,10 @@ function extractTmdbIdFromMappingPayload(mappingPayload) {
   return /^\d+$/.test(text) ? text : null;
 }
 function resolveEpisodeFromMappingPayload(mappingPayload, fallbackEpisode) {
-  var _a, _b;
-  const fromKitsu = parsePositiveInt((_a = mappingPayload == null ? void 0 : mappingPayload.kitsu) == null ? void 0 : _a.episode);
-  if (fromKitsu) return fromKitsu;
-  const fromRequested = parsePositiveInt((_b = mappingPayload == null ? void 0 : mappingPayload.requested) == null ? void 0 : _b.episode);
-  if (fromRequested) return fromRequested;
-  return normalizeRequestedEpisode(fallbackEpisode);
+  var _a;
+  return normalizeRequestedEpisode(
+    parsePositiveInt((_a = mappingPayload == null ? void 0 : mappingPayload.kitsu) == null ? void 0 : _a.episode) || fallbackEpisode
+  );
 }
 function mapLimit(values, limit, mapper) {
   return __async(this, null, function* () {
@@ -1131,7 +1326,8 @@ function getStreams(id, type, season, episode, providerContext = null) {
         }
       }
       if (animePaths.length === 0) return [];
-      const requestedEpisode = resolveEpisodeFromMappingPayload(mappingPayload, lookup.episode);
+      const mappedEpisode = resolveEpisodeFromMappingPayload(mappingPayload, lookup.episode);
+      const requestedEpisode = resolveAnimeEpisode(lookup.provider, providerContext, mappedEpisode);
       const normalizedType = String(type || "").toLowerCase();
       const mediaType = normalizedType === "movie" ? "movie" : "tv";
       const perPathStreams = yield mapLimit(
