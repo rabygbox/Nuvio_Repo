@@ -81,28 +81,129 @@ var require_formatter = __commonJS({
         stream == null ? void 0 : stream.server,
         providerName
       ].filter(Boolean).join(" ").toLowerCase();
-      if (text.includes("mixdrop") || text.includes("m1xdrop") || text.includes("mxcontent")) {
-        return true;
-      }
-      if (text.includes("loadm") || text.includes("loadm.cam")) {
+      if (text.includes("loadm") || text.includes("loadm.cam") || text.includes("mixdrop") || text.includes("mxcontent")) {
         return true;
       }
       return false;
     }
+    function normalizeProviderId(providerName) {
+      const normalized = String(providerName || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+      return normalized || void 0;
+    }
+    function normalizeEpisodeTemplate(value) {
+      return String(value || "").replace(
+        /\b(\d{1,3})[xX](\d{1,3})\b/g,
+        (_, season, episode) => `S${season.padStart(2, "0")}E${episode.padStart(2, "0")}`
+      ).replace(
+        /\bS(\d{1,3})\s*E(\d{1,3})\b/gi,
+        (_, season, episode) => `S${season.padStart(2, "0")}E${episode.padStart(2, "0")}`
+      );
+    }
+    var EASYJACK_LANGUAGE_FLAGS = {
+      unknown: "\u{1F30E}",
+      ita: "\u{1F1EE}\u{1F1F9}",
+      italian: "\u{1F1EE}\u{1F1F9}",
+      eng: "\u{1F1EC}\u{1F1E7}",
+      english: "\u{1F1EC}\u{1F1E7}",
+      jpn: "\u{1F1EF}\u{1F1F5}",
+      japanese: "\u{1F1EF}\u{1F1F5}",
+      ko: "\u{1F1F0}\u{1F1F7}",
+      kor: "\u{1F1F0}\u{1F1F7}",
+      korean: "\u{1F1F0}\u{1F1F7}",
+      rus: "\u{1F1F7}\u{1F1FA}",
+      russian: "\u{1F1F7}\u{1F1FA}",
+      por: "\u{1F1F5}\u{1F1F9}",
+      portuguese: "\u{1F1F5}\u{1F1F9}",
+      fra: "\u{1F1EB}\u{1F1F7}",
+      fre: "\u{1F1EB}\u{1F1F7}",
+      french: "\u{1F1EB}\u{1F1F7}",
+      spa: "\u{1F1EA}\u{1F1F8}",
+      spanish: "\u{1F1EA}\u{1F1F8}",
+      ger: "\u{1F1E9}\u{1F1EA}",
+      deu: "\u{1F1E9}\u{1F1EA}",
+      german: "\u{1F1E9}\u{1F1EA}",
+      dut: "\u{1F1F3}\u{1F1F1}",
+      nld: "\u{1F1F3}\u{1F1F1}",
+      pol: "\u{1F1F5}\u{1F1F1}",
+      cze: "\u{1F1E8}\u{1F1FF}",
+      hun: "\u{1F1ED}\u{1F1FA}",
+      hrv: "\u{1F1ED}\u{1F1F7}",
+      ukr: "\u{1F1FA}\u{1F1E6}",
+      dan: "\u{1F1E9}\u{1F1F0}",
+      swe: "\u{1F1F8}\u{1F1EA}",
+      nor: "\u{1F1F3}\u{1F1F4}",
+      tur: "\u{1F1F9}\u{1F1F7}",
+      ara: "\u{1F1F8}\u{1F1E6}",
+      heb: "\u{1F1EE}\u{1F1F1}",
+      ind: "\u{1F1EE}\u{1F1E9}",
+      may: "\u{1F1F2}\u{1F1FE}",
+      tha: "\u{1F1F9}\u{1F1ED}"
+    };
+    function formatEasyJackLanguage(value) {
+      return String(value || "").trim().split(/\s*\/\s*/).map((part) => EASYJACK_LANGUAGE_FLAGS[part.trim().toLowerCase()] || part.trim()).filter(Boolean).join(" / ");
+    }
+    function formatEasyJackList(value) {
+      if (Array.isArray(value)) return value.flatMap(formatEasyJackList);
+      const text = String(value || "").trim();
+      return text ? text.split(/\s*(?:\||\/)\s*/).map((item) => item.trim()).filter(Boolean) : [];
+    }
+    function formatEasyJackFilename(stream, fallbackTitle = "Stream") {
+      var _a;
+      const raw = String(
+        ((_a = stream == null ? void 0 : stream.behaviorHints) == null ? void 0 : _a.filename) || (stream == null ? void 0 : stream.filename) || (stream == null ? void 0 : stream.fileName) || (stream == null ? void 0 : stream.debridFilename) || fallbackTitle || "Stream"
+      ).trim();
+      return raw.replace(/\\/g, "/").split("/").pop() || fallbackTitle || "Stream";
+    }
+    function formatEasyJackDescription(stream = {}, titleOverride = "") {
+      const filename = formatEasyJackFilename(stream, titleOverride || stream.originalTitle || stream.title);
+      const sourceQuality = String(
+        stream.releaseQuality || stream.sourceQuality || (stream.quality && !/^(?:4k|2160p|1440p|2k|1080p|fhd|720p|hd|576p|480p|360p|240p|sd|unknown)$/i.test(String(stream.quality).trim()) ? stream.quality : "")
+      ).trim();
+      const visualTags = formatEasyJackList(stream.visualTags || stream.visual_tags);
+      const encode = String(stream.encode || stream.videoCodec || stream.video_codec || "").trim();
+      const videoLine = [
+        sourceQuality ? `\u{1F3A5} ${sourceQuality}` : "",
+        visualTags.length > 0 ? `\u{1F4FA} ${visualTags.join(" | ")}` : "",
+        encode ? `\u{1F39E}\uFE0F ${encode}` : ""
+      ].filter(Boolean).join(" ");
+      const audioTags = formatEasyJackList(stream.audioTags || stream.audio_tags || stream.audioTag || stream.audioCodec || stream.audio_codec);
+      const audioChannels = formatEasyJackList(stream.audioChannels || stream.audio_channels || stream.audioChannel || stream.audio_channel);
+      const audioLine = [
+        audioTags.length > 0 ? `\u{1F3A7} ${audioTags.join(" | ")}` : "",
+        audioChannels.length > 0 ? `\u{1F50A} ${audioChannels.join(" | ")}` : ""
+      ].filter(Boolean).join(" ");
+      const languageValue = stream.languageDefaulted ? "UNKNOWN" : Array.isArray(stream.languageEmojis) && stream.languageEmojis.length > 0 ? stream.languageEmojis.join(" / ") : stream.language || "";
+      const language = formatEasyJackLanguage(languageValue);
+      const languageSizeLine = [
+        language ? `\u{1F5E3}\uFE0F ${language}` : "",
+        stream.size ? `\u{1F4BE} ${String(stream.size).trim()}` : ""
+      ].filter(Boolean).join(" ");
+      return [
+        `\u{1F4C1} ${filename}`,
+        videoLine,
+        audioLine,
+        languageSizeLine,
+        "\u{1F50D} EasyJack \u{1F4E1} EasyStreams"
+      ].filter(Boolean).join("\n");
+    }
     function formatStream2(stream, providerName) {
-      let quality = stream.quality || "";
-      if (quality === "2160p") quality = "\u{1F525}4K UHD";
+      let quality = stream.resolution || stream.quality || "";
+      if (["4k", "2160p"].includes(String(quality).toLowerCase())) quality = "\u{1F525}4K UHD";
       else if (quality === "1440p") quality = "\u2728 QHD";
       else if (quality === "1080p") quality = "\u{1F680} FHD";
       else if (quality === "720p") quality = "\u{1F4BF} HD";
       else if (quality === "576p" || quality === "480p" || quality === "360p" || quality === "240p") quality = "\u{1F4A9} Low Quality";
-      else if (!quality || ["auto", "unknown", "unknow"].includes(String(quality).toLowerCase())) quality = "Unknow";
-      let title = `\u{1F4C1} ${stream.title || "Stream"}`;
+      else if (!quality || ["auto", "unknown", "unknow"].includes(String(quality).toLowerCase())) quality = "\u{1F4BF} HD";
+      const normalizedTitle = normalizeEpisodeTemplate(stream.title || "Stream");
+      let title = `\u{1F4C1} ${normalizedTitle}`;
       let language = stream.language;
-      if (!language) {
-        if (stream.name && (stream.name.includes("SUB ITA") || stream.name.includes("SUB"))) language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
-        else if (stream.title && (stream.title.includes("SUB ITA") || stream.title.includes("SUB"))) language = "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
-        else language = "\u{1F1EE}\u{1F1F9}";
+      const isEasyJackProvider = String(providerName || "").trim().toLowerCase() === "easyjack";
+      if (isEasyJackProvider) {
+        language = formatEasyJackLanguage(language);
+      } else if (language === "Italian") {
+        language = "\u{1F1EE}\u{1F1F9}";
+      } else if (language === void 0 || language === null) {
+        language = "";
       }
       let details = [];
       if (stream.size) details.push(`\u{1F4E6} ${stream.size}`);
@@ -117,6 +218,7 @@ var require_formatter = __commonJS({
       if (pName) {
         pName = `\u{1F4E1} ${pName}`;
       }
+      const formattedDescription = isEasyJackProvider ? formatEasyJackDescription(stream, normalizedTitle) : desc;
       const behaviorHints = stream.behaviorHints && typeof stream.behaviorHints === "object" ? __spreadValues({}, stream.behaviorHints) : {};
       let finalHeaders = stream.headers;
       if (behaviorHints.proxyHeaders && behaviorHints.proxyHeaders.request) {
@@ -136,16 +238,21 @@ var require_formatter = __commonJS({
         behaviorHints.proxyHeaders.request = finalHeaders;
         behaviorHints.headers = finalHeaders;
       }
+      const providerExplicitNotWebReady = stream.behaviorHints && "notWebReady" in stream.behaviorHints;
       const shouldForceNotWebReady = shouldForceNotWebReadyForPlugin(stream, providerName, finalHeaders, behaviorHints);
       if (!isStreamingCommunityProvider && shouldForceNotWebReady) {
         behaviorHints.notWebReady = true;
-      } else {
+      } else if (!providerExplicitNotWebReady) {
         delete behaviorHints.notWebReady;
       }
       const finalName = pName;
-      let finalTitle = `\u{1F4C1} ${stream.title || "Stream"}`;
-      if (desc) finalTitle += ` | ${desc}`;
-      if (language) finalTitle += ` | ${language}`;
+      let finalTitle = isEasyJackProvider ? formattedDescription : `\u{1F4C1} ${normalizedTitle}`;
+      if (!isEasyJackProvider) {
+        if (desc) finalTitle += ` | ${desc}`;
+        if (language) finalTitle += ` | ${language}`;
+      }
+      const playbackReferer = stream.referer || (finalHeaders == null ? void 0 : finalHeaders.Referer) || (finalHeaders == null ? void 0 : finalHeaders.referer);
+      const playbackUserAgent = stream.userAgent || (finalHeaders == null ? void 0 : finalHeaders["User-Agent"]) || (finalHeaders == null ? void 0 : finalHeaders["user-agent"]);
       return __spreadProps(__spreadValues({}, stream), {
         // Keep original properties
         name: finalName,
@@ -153,18 +260,21 @@ var require_formatter = __commonJS({
         // Metadata for Stremio UI reconstruction (safer names for RN)
         providerName: pName,
         qualityTag: quality,
-        description: desc,
-        originalTitle: stream.title || "Stream",
+        description: formattedDescription,
+        originalTitle: normalizedTitle,
         // Ensure language is set for Stremio/Nuvio sorting
         language,
         // Mark as formatted
         _nuvio_formatted: true,
         behaviorHints,
+        provider: stream.provider || normalizeProviderId(providerName),
+        referer: playbackReferer,
+        userAgent: playbackUserAgent,
         // Explicitly ensure root headers are preserved for Nuvio
         headers: finalHeaders
       });
     }
-    module2.exports = { formatStream: formatStream2 };
+    module2.exports = { formatEasyJackDescription, formatStream: formatStream2 };
   }
 });
 
@@ -233,35 +343,6 @@ var require_quality_helper = __commonJS({
   "src/quality_helper.js"(exports2, module2) {
     var { createTimeoutSignal: createTimeoutSignal2 } = require_fetch_helper();
     var USER_AGENT2 = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36";
-    function checkQualityFromPlaylist2(_0) {
-      return __async(this, arguments, function* (url, headers = {}) {
-        try {
-          if (!url.includes(".m3u8")) return null;
-          const finalHeaders = __spreadValues({}, headers);
-          if (!finalHeaders["User-Agent"]) {
-            finalHeaders["User-Agent"] = USER_AGENT2;
-          }
-          const timeoutConfig = createTimeoutSignal2(3e3);
-          try {
-            const response = yield fetch(url, {
-              headers: finalHeaders,
-              signal: timeoutConfig.signal
-            });
-            if (!response.ok) return null;
-            const text = yield response.text();
-            const quality = checkQualityFromText(text);
-            if (quality) console.log(`[QualityHelper] Detected ${quality} from playlist: ${url}`);
-            return quality;
-          } finally {
-            if (typeof timeoutConfig.cleanup === "function") {
-              timeoutConfig.cleanup();
-            }
-          }
-        } catch (e) {
-          return null;
-        }
-      });
-    }
     function checkQualityFromText(text) {
       if (!text) return null;
       if (/RESOLUTION=\d+x2160/i.test(text) || /RESOLUTION=2160/i.test(text)) return "4K";
@@ -270,6 +351,32 @@ var require_quality_helper = __commonJS({
       if (/RESOLUTION=\d+x720/i.test(text) || /RESOLUTION=720/i.test(text)) return "720p";
       if (/RESOLUTION=\d+x480/i.test(text) || /RESOLUTION=480/i.test(text)) return "480p";
       return null;
+    }
+    function checkQualityFromPlaylist2(_0) {
+      return __async(this, arguments, function* (url, headers = {}, options = {}) {
+        try {
+          const finalHeaders = __spreadValues({}, headers);
+          if (!finalHeaders["User-Agent"]) finalHeaders["User-Agent"] = USER_AGENT2;
+          const timeoutConfig = createTimeoutSignal2(3e3);
+          try {
+            const fetcher = typeof options.fetcher === "function" ? options.fetcher : fetch;
+            const response = yield fetcher(url, {
+              headers: finalHeaders,
+              signal: timeoutConfig.signal
+            });
+            if (!response.ok) return null;
+            const text = yield response.text();
+            if (!text.startsWith("#EXTM3U")) return null;
+            const quality = checkQualityFromText(text);
+            if (quality) console.log(`[QualityHelper] Detected ${quality} from playlist: ${url}`);
+            return quality;
+          } finally {
+            if (typeof timeoutConfig.cleanup === "function") timeoutConfig.cleanup();
+          }
+        } catch (_) {
+          return null;
+        }
+      });
     }
     function getQualityFromUrl(url) {
       if (!url) return null;
@@ -282,20 +389,118 @@ var require_quality_helper = __commonJS({
       if (urlPath.includes("360")) return "360p";
       return null;
     }
-    module2.exports = { checkQualityFromPlaylist: checkQualityFromPlaylist2, getQualityFromUrl, checkQualityFromText };
+    module2.exports = {
+      checkQualityFromPlaylist: checkQualityFromPlaylist2,
+      getQualityFromUrl,
+      checkQualityFromText
+    };
+  }
+});
+
+// src/extractors/common.js
+var require_common = __commonJS({
+  "src/extractors/common.js"(exports2, module2) {
+    var USER_AGENT2 = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
+    function getProxiedUrl2(url) {
+      let proxyUrl = null;
+      try {
+        if (typeof global !== "undefined" && global.CF_PROXY_URL) {
+          proxyUrl = global.CF_PROXY_URL;
+        }
+      } catch (e) {
+      }
+      if (proxyUrl && url) {
+        const separator = proxyUrl.includes("?") ? "&" : "?";
+        return `${proxyUrl}${separator}url=${encodeURIComponent(url)}`;
+      }
+      return url;
+    }
+    function unPack(p, a, c, k, e, d) {
+      e = function(c2) {
+        return (c2 < a ? "" : e(parseInt(c2 / a))) + ((c2 = c2 % a) > 35 ? String.fromCharCode(c2 + 29) : c2.toString(36));
+      };
+      if (!"".replace(/^/, String)) {
+        while (c--) {
+          d[e(c)] = k[c] || e(c);
+        }
+        k = [function(e2) {
+          return d[e2] || e2;
+        }];
+        e = function() {
+          return "\\w+";
+        };
+        c = 1;
+      }
+      while (c--) {
+        if (k[c]) {
+          p = p.replace(new RegExp("\\b" + e(c) + "\\b", "g"), k[c]);
+        }
+      }
+      return p;
+    }
+    function isFlareSolverrBlockedError(error) {
+      const message = String(error && error.message || error || "");
+      return /FlareSolverr in cooldown|Request failed with status code 500|Cloudflare has blocked/i.test(message);
+    }
+    module2.exports = {
+      USER_AGENT: USER_AGENT2,
+      unPack,
+      getProxiedUrl: getProxiedUrl2,
+      isFlareSolverrBlockedError
+    };
+  }
+});
+
+// easyjack/anime_mapping.js
+var require_anime_mapping = __commonJS({
+  "easyjack/anime_mapping.js"(exports2, module2) {
+    "use strict";
+    var DEFAULT_ANIME_MAPPING_URL = "https://animemapping.realbestia.com";
+    var configuredAnimeMappingUrl = "";
+    function normalizeAnimeMappingUrl(value) {
+      const normalized = String(value || "").trim().replace(/\/+$/, "");
+      if (!normalized) return "";
+      try {
+        const parsed = new URL(normalized);
+        if (!["http:", "https:"].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password) {
+          return "";
+        }
+        if (parsed.search || parsed.hash) return "";
+        return parsed.toString().replace(/\/+$/, "");
+      } catch (e) {
+        return "";
+      }
+    }
+    function getAnimeMappingBaseUrl2() {
+      var _a;
+      const scraperSettings = typeof globalThis !== "undefined" && globalThis.SCRAPER_SETTINGS && typeof globalThis.SCRAPER_SETTINGS === "object" ? globalThis.SCRAPER_SETTINGS : null;
+      const configured = configuredAnimeMappingUrl || (scraperSettings == null ? void 0 : scraperSettings.animeMappingUrl) || (scraperSettings == null ? void 0 : scraperSettings.animeMappingURL) || (typeof globalThis !== "undefined" ? globalThis.EASYJACK_ANIME_MAPPING_URL : "") || (typeof process !== "undefined" ? (_a = process.env) == null ? void 0 : _a.EASYJACK_ANIME_MAPPING_URL : "");
+      return normalizeAnimeMappingUrl(configured) || DEFAULT_ANIME_MAPPING_URL;
+    }
+    function setAnimeMappingBaseUrl(value) {
+      configuredAnimeMappingUrl = normalizeAnimeMappingUrl(value);
+      return getAnimeMappingBaseUrl2();
+    }
+    module2.exports = {
+      DEFAULT_ANIME_MAPPING_URL,
+      getAnimeMappingBaseUrl: getAnimeMappingBaseUrl2,
+      normalizeAnimeMappingUrl,
+      setAnimeMappingBaseUrl
+    };
   }
 });
 
 // src/animesaturn/index.js
-var cheerio = require("cheerio");
 var { formatStream } = require_formatter();
 var { checkQualityFromPlaylist } = require_quality_helper();
 var { createTimeoutSignal } = require_fetch_helper();
+var { getProxiedUrl } = require_common();
+var { getAnimeMappingBaseUrl } = require_anime_mapping();
 function getSaturnBaseUrl() {
-  return "https://www.animesaturn.cx";
+  return "https://www.animesaturn.net";
 }
 function getMappingApiBase() {
-  return "https://animemapping.realbestia.com";
+  return getAnimeMappingBaseUrl();
 }
 var USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
 var FETCH_TIMEOUT = 1e4;
@@ -317,6 +522,8 @@ var caches = {
   inflight: /* @__PURE__ */ new Map()
 };
 function getCached(map, key) {
+  const isReactNative = typeof navigator !== "undefined" && navigator.product === "ReactNative" || typeof global !== "undefined" && global.HermesInternal;
+  if (isReactNative) return void 0;
   const entry = map.get(key);
   if (!entry) return void 0;
   if (entry.expiresAt <= Date.now()) {
@@ -326,6 +533,20 @@ function getCached(map, key) {
   return entry.value;
 }
 function setCached(map, key, value, ttlMs) {
+  const isReactNative = typeof navigator !== "undefined" && navigator.product === "ReactNative" || typeof global !== "undefined" && global.HermesInternal;
+  if (isReactNative) return value;
+  for (const [k, entry] of map.entries()) {
+    if (entry.expiresAt <= Date.now()) {
+      map.delete(k);
+    }
+  }
+  const MAX_CACHE_ENTRIES = 500;
+  if (map.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = map.keys().next().value;
+    if (oldestKey !== void 0) {
+      map.delete(oldestKey);
+    }
+  }
   map.set(key, { value, expiresAt: Date.now() + ttlMs });
   return value;
 }
@@ -348,19 +569,17 @@ function normalizeRequestedEpisode(value) {
   const parsed = parsePositiveInt(value);
   return parsed || 1;
 }
+function resolveAnimeEpisode(provider, providerContext, fallbackEpisode) {
+  const requestedEpisode = parsePositiveInt(providerContext == null ? void 0 : providerContext.requestedEpisode);
+  const mappedEpisode = parsePositiveInt(fallbackEpisode);
+  return ["kitsu", "mal", "anilist", "anidb", "imdb", "tmdb", "tvdb"].includes(String(provider || "").toLowerCase()) ? normalizeRequestedEpisode(mappedEpisode || requestedEpisode) : normalizeRequestedEpisode(fallbackEpisode);
+}
 function normalizeRequestedSeason(value) {
   const parsed = Number.parseInt(String(value || ""), 10);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 }
-function normalizeConfigBoolean(value) {
-  if (value === true) return true;
-  const normalized = String(value || "").trim().toLowerCase();
-  return ["1", "true", "yes", "on", "enabled", "checked"].includes(normalized);
-}
 function getMappingLanguage(providerContext = null) {
-  const explicit = String((providerContext == null ? void 0 : providerContext.mappingLanguage) || "").trim().toLowerCase();
-  if (explicit === "it") return "it";
-  return normalizeConfigBoolean(providerContext == null ? void 0 : providerContext.easyCatalogsLangIt) ? "it" : null;
+  return "it";
 }
 function toAbsoluteUrl(href, base = null) {
   if (!href) return null;
@@ -402,7 +621,7 @@ function normalizeEpisodePath(pathOrUrl) {
   }
   if (!value.startsWith("/")) value = `/${value}`;
   value = value.replace(/\/+$/, "");
-  const match = value.match(/^\/ep\/[^/?#]+/i);
+  const match = value.match(/^\/episode\/[^/?#]+\/ep-\d+/i);
   return match ? match[0] : null;
 }
 function buildSaturnUrl(pathOrUrl) {
@@ -420,19 +639,64 @@ function inferSourceTag(title, animePath) {
   return "SUB";
 }
 function resolveLanguageEmoji(sourceTag) {
-  return String(sourceTag || "").toUpperCase() === "ITA" ? "\u{1F1EE}\u{1F1F9}" : "\u{1F1EF}\u{1F1F5}";
+  return String(sourceTag || "").toUpperCase() === "ITA" ? "\u{1F1EE}\u{1F1F9}" : "\u{1F1EF}\u{1F1F5} \u{1F1EE}\u{1F1F9}";
 }
 function sanitizeAnimeTitle(rawTitle) {
-  let text = String(rawTitle || "").trim();
+  let text = decodeHtmlEntities(String(rawTitle || "")).trim();
   if (!text) return null;
   text = text.replace(/^\s*AnimeSaturn\s*-\s*/i, "").replace(/\s*-\s*AnimeSaturn.*$/i, "").replace(/\s+Streaming.*$/i, "").replace(/\s+Episodi.*$/i, "").replace(/\s+episodio\s*\d+(?:[.,]\d+)?\b/gi, "").replace(/\s+episode\s*\d+(?:[.,]\d+)?\b/gi, "").trim();
   text = text.replace(/\s*[\[(]\s*(?:SUB\s*ITA|ITA|SUB|DUB(?:BED)?|DOPPIATO)\s*[\])]\s*/gi, " ").replace(/\s*[-–_|:]\s*(?:SUB\s*ITA|ITA|SUB|DUB(?:BED)?|DOPPIATO)\s*$/gi, "").replace(/\s{2,}/g, " ").replace(/\s*[-–_|:]\s*$/g, "").trim();
   return text || null;
 }
+function decodeHtmlEntities(value) {
+  return String(value || "").replace(/&#x([0-9a-f]+);?/gi, (match, code) => {
+    const codePoint = Number.parseInt(code, 16);
+    return Number.isInteger(codePoint) && codePoint >= 0 && codePoint <= 1114111 ? String.fromCodePoint(codePoint) : match;
+  }).replace(/&#(\d+);?/g, (match, code) => {
+    const codePoint = Number.parseInt(code, 10);
+    return Number.isInteger(codePoint) && codePoint >= 0 && codePoint <= 1114111 ? String.fromCodePoint(codePoint) : match;
+  }).replace(/&quot;/gi, '"').replace(/&#34;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/gi, "'").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&nbsp;/gi, " ");
+}
+function stripHtmlTags(value) {
+  return decodeHtmlEntities(String(value || "").replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
+}
+function getTagAttribute(tag, attrName) {
+  const escaped = String(attrName || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`${escaped}\\s*=\\s*(["'])([\\s\\S]*?)\\1`, "i");
+  const match = String(tag || "").match(regex);
+  return match ? decodeHtmlEntities(match[2]) : null;
+}
+function getFirstTagText(html, tagName) {
+  const regex = new RegExp(`<${tagName}\\b[^>]*>([\\s\\S]*?)<\\/${tagName}>`, "i");
+  const match = String(html || "").match(regex);
+  return match ? stripHtmlTags(match[1]) : "";
+}
+function getMetaContent(html, propertyValue) {
+  const escaped = String(propertyValue || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`<meta\\b(?=[^>]*(?:property|name)\\s*=\\s*["']${escaped}["'])[\\s\\S]*?>`, "i");
+  const match = String(html || "").match(regex);
+  return match ? getTagAttribute(match[0], "content") : null;
+}
+function collectAnchorMatches(html, hrefNeedle) {
+  const anchors = [];
+  const regex = /<a\b[^>]*href\s*=\s*(["'])([\s\S]*?)\1[^>]*>([\s\S]*?)<\/a>/gi;
+  let match;
+  while ((match = regex.exec(String(html || ""))) !== null) {
+    const tag = match[0];
+    const href = decodeHtmlEntities(match[2]);
+    if (!String(href || "").includes(hrefNeedle)) continue;
+    anchors.push({
+      href,
+      title: getTagAttribute(tag, "title") || "",
+      text: stripHtmlTags(match[3])
+    });
+  }
+  return anchors;
+}
 function parseEpisodeNumber(value, fallbackNum) {
   const raw = String(value || "").trim();
   if (!raw) return fallbackNum;
-  const byHref = raw.match(/-ep-(\d+)/i);
+  const byHref = raw.match(/\/ep-(\d+)/i);
   if (byHref) {
     const parsed = Number.parseInt(byHref[1], 10);
     if (Number.isFinite(parsed) && parsed > 0) return parsed;
@@ -604,19 +868,17 @@ function extractWatchUrlsFromHtml(html, expectedFileId = null) {
   return out;
 }
 function parseAnimeSaturnPage(html, fallback = {}) {
-  const $ = cheerio.load(html);
-  const pageTitle = $("h1").first().text().trim() || $("meta[property='og:title']").attr("content") || $("title").first().text().trim() || null;
+  const pageTitle = getFirstTagText(html, "h1") || getMetaContent(html, "og:title") || getFirstTagText(html, "title") || null;
   const title = sanitizeAnimeTitle(fallback.title) || sanitizeAnimeTitle(pageTitle) || null;
   const animePath = normalizeAnimeSaturnPath(fallback.animePath || null);
   const sourceTag = inferSourceTag(title, animePath);
   const episodes = [];
   const seenEpisodePath = /* @__PURE__ */ new Set();
-  $("a[href*='/ep/']").each((index, element) => {
-    const anchor = $(element);
-    const href = normalizeEpisodePath(anchor.attr("href"));
+  collectAnchorMatches(html, "/episode/").forEach((anchor, index) => {
+    const href = normalizeEpisodePath(anchor.href);
     if (!href || seenEpisodePath.has(href)) return;
     seenEpisodePath.add(href);
-    const probe = `${href} ${anchor.text() || ""} ${anchor.attr("title") || ""}`;
+    const probe = `${href} ${anchor.text || ""} ${anchor.title || ""}`;
     const num = parseEpisodeNumber(probe, index + 1);
     episodes.push({
       num,
@@ -638,12 +900,11 @@ function parseAnimeSaturnPage(html, fallback = {}) {
   }
   const relatedAnimePaths = [];
   const seenRelated = /* @__PURE__ */ new Set();
-  $("a[href*='/anime/']").each((_, element) => {
-    const anchor = $(element);
-    const relatedPath = normalizeAnimeSaturnPath(anchor.attr("href"));
+  collectAnchorMatches(html, "/anime/").forEach((anchor) => {
+    const relatedPath = normalizeAnimeSaturnPath(anchor.href);
     if (!relatedPath || seenRelated.has(relatedPath)) return;
     if (animePath && relatedPath === animePath) return;
-    const probe = `${anchor.text() || ""} ${anchor.attr("title") || ""} ${relatedPath}`.toLowerCase();
+    const probe = `${anchor.text || ""} ${anchor.title || ""} ${relatedPath}`.toLowerCase();
     if (!probe.includes("ita")) return;
     seenRelated.add(relatedPath);
     relatedAnimePaths.push(relatedPath);
@@ -706,7 +967,6 @@ function pickEpisodeEntry(episodes, requestedEpisode, mediaType = "tv") {
   return null;
 }
 function collectMediaLinksFromWatchHtml(html) {
-  const $ = cheerio.load(String(html || ""));
   const links = [];
   const seen = /* @__PURE__ */ new Set();
   function addLink(href, label) {
@@ -715,9 +975,11 @@ function collectMediaLinksFromWatchHtml(html) {
     seen.add(playable);
     links.push({ href: playable, label });
   }
-  $("source[src], video source[src]").each((_, element) => {
-    addLink($(element).attr("src"), "Player");
-  });
+  const sourceRegex = /<source\b[^>]*src\s*=\s*(["'])([\s\S]*?)\1[^>]*>/gi;
+  let sourceMatch;
+  while ((sourceMatch = sourceRegex.exec(String(html || ""))) !== null) {
+    addLink(decodeHtmlEntities(sourceMatch[2]), "Player");
+  }
   const rawHtml = String(html || "");
   const variants = [rawHtml, rawHtml.replace(/\\\//g, "/")];
   for (const text of variants) {
@@ -733,8 +995,8 @@ function collectMediaLinksFromWatchHtml(html) {
       } catch (e) {
       }
     }
-    const sourceRegex = /(?:file|src|url|link)\s*[:=]\s*["']([^"']+)["']/gi;
-    while ((match = sourceRegex.exec(text)) !== null) {
+    const sourceRegex2 = /(?:file|src|url|link)\s*[:=]\s*["']([^"']+)["']/gi;
+    while ((match = sourceRegex2.exec(text)) !== null) {
       addLink(match[1], "Player");
     }
   }
@@ -750,12 +1012,77 @@ function normalizeHostLabel(rawUrl) {
     return "";
   }
 }
+function extractEmbedUrlFromWatchHtml(html) {
+  const match = String(html || "").match(/<iframe\b[^>]*src\s*=\s*["']([^"']*play\.saturncdn\.net[^"']*)["']/i);
+  if (match) return decodeHtmlEntities(match[1]);
+  const dataMatch = String(html || "").match(/initialVideoUrl\s*:\s*["']([^"']*)["']/i);
+  if (dataMatch) return decodeHtmlEntities(dataMatch[1]);
+  return null;
+}
+function resolvePlaylistUrl(embedUrl) {
+  return __async(this, null, function* () {
+    if (!embedUrl) return null;
+    let parsed;
+    try {
+      parsed = new URL(embedUrl);
+    } catch (e) {
+      return null;
+    }
+    const pathMatch = parsed.pathname.match(/\/embed\/(\d+)/);
+    if (!pathMatch) return embedUrl;
+    const id = pathMatch[1];
+    const token = parsed.searchParams.get("token");
+    const expires = parsed.searchParams.get("expires");
+    if (!id || !token || !expires) return embedUrl;
+    const playlistUrl = `${parsed.origin}/embed/${id}/playlist?token=${encodeURIComponent(token)}&expires=${encodeURIComponent(expires)}`;
+    const proxiedPlaylistUrl = getProxiedUrl(playlistUrl);
+    try {
+      const payload = yield fetchResource(proxiedPlaylistUrl, {
+        as: "json",
+        ttlMs: TTL.watch,
+        cacheKey: `playlist:${embedUrl}`,
+        timeoutMs: FETCH_TIMEOUT,
+        headers: {
+          "Accept": "*/*",
+          "Origin": parsed.origin,
+          "Referer": embedUrl,
+          "Sec-Fetch-Dest": "empty",
+          "Sec-Fetch-Mode": "cors",
+          "Sec-Fetch-Site": "same-origin"
+        }
+      });
+      if (!payload || !payload.d) return embedUrl;
+      const decrypted = base64XorDecrypt(payload.d, token);
+      if (decrypted) return decrypted;
+    } catch (error) {
+      console.error("[AnimeSaturn] playlist resolution failed:", error.message);
+    }
+    return embedUrl;
+  });
+}
+function base64XorDecrypt(encoded, key) {
+  if (!encoded || !key) return null;
+  try {
+    const bytes = typeof Buffer !== "undefined" ? Buffer.from(encoded, "base64").toString("binary") : atob(encoded);
+    let out = "";
+    for (let i = 0; i < bytes.length; i++) {
+      out += String.fromCharCode(bytes.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return out;
+  } catch (e) {
+    return null;
+  }
+}
 function resolveWatchUrlsForEpisodeEntry(source, episodeEntry) {
   return __async(this, null, function* () {
     const urls = [];
-    const hasEpisodePath = Boolean(episodeEntry == null ? void 0 : episodeEntry.episodePath);
     if (episodeEntry == null ? void 0 : episodeEntry.watchUrl) {
       urls.push(...extractWatchUrlsFromHtml(episodeEntry.watchUrl));
+    }
+    if (urls.length === 0 && (episodeEntry == null ? void 0 : episodeEntry.episodePath)) {
+      const watchPath = episodeEntry.episodePath.replace(/^\/episode\//, "/anime/");
+      const watchUrl = buildSaturnUrl(watchPath);
+      if (watchUrl) urls.push(watchUrl);
     }
     if (urls.length === 0 && (episodeEntry == null ? void 0 : episodeEntry.episodePath)) {
       const episodeUrl = buildSaturnUrl(episodeEntry.episodePath);
@@ -769,26 +1096,6 @@ function resolveWatchUrlsForEpisodeEntry(source, episodeEntry) {
           urls.push(...extractWatchUrlsFromHtml(html));
         } catch (error) {
           console.error("[AnimeSaturn] episode page request failed:", error.message);
-        }
-      }
-    }
-    if (hasEpisodePath && urls.length === 0) {
-      const epLabel = Number.isFinite(Number(episodeEntry == null ? void 0 : episodeEntry.num)) ? episodeEntry.num : "?";
-      console.log(`[AnimeSaturn] No watch links for episode ${epLabel}. Skipping fallback.`);
-      return [];
-    }
-    if (urls.length === 0 && (source == null ? void 0 : source.animePath)) {
-      const animeUrl = buildSaturnUrl(source.animePath);
-      if (animeUrl) {
-        try {
-          const html = yield fetchResource(animeUrl, {
-            ttlMs: TTL.watch,
-            cacheKey: `anime-watch-fallback:${source.animePath}`,
-            timeoutMs: FETCH_TIMEOUT
-          });
-          urls.push(...extractWatchUrlsFromHtml(html));
-        } catch (error) {
-          console.error("[AnimeSaturn] anime watch fallback failed:", error.message);
         }
       }
     }
@@ -870,6 +1177,7 @@ function extractStreamsFromAnimePath(animePath, requestedEpisode, mediaType = "t
     }
     const displayTitle = mediaType === "movie" ? baseTitle : `${baseTitle} - Ep ${resolvedEpisode}`;
     const streamLanguage = resolveLanguageEmoji(parsedPage.sourceTag);
+    const subtitleOnly = String(parsedPage.sourceTag || "").toUpperCase() !== "ITA";
     const initialWatchUrls = yield resolveWatchUrlsForEpisodeEntry(
       {
         animePath: normalizedPath,
@@ -909,6 +1217,48 @@ function extractStreamsFromAnimePath(animePath, requestedEpisode, mediaType = "t
         console.error("[AnimeSaturn] watch page request failed:", error.message);
         continue;
       }
+      const embedUrl = extractEmbedUrlFromWatchHtml(html);
+      if (embedUrl) {
+        const resolved = yield resolvePlaylistUrl(embedUrl);
+        const mediaUrl = normalizePlayableMediaUrl(resolved);
+        if (mediaUrl && !seenMedia.has(mediaUrl)) {
+          seenMedia.add(mediaUrl);
+          const quality = extractQualityHint(mediaUrl);
+          const host = normalizeHostLabel(mediaUrl);
+          const serverName = host ? `AnimeSaturn - ${host}` : "AnimeSaturn";
+          streams.push({
+            name: serverName,
+            server: serverName,
+            title: displayTitle,
+            url: mediaUrl,
+            language: streamLanguage,
+            subtitleOnly,
+            quality: normalizeAnimeSaturnQuality(quality),
+            headers: {
+              "User-Agent": USER_AGENT,
+              Referer: watchUrl
+            }
+          });
+        } else {
+          const hostLabel = "SaturnCDN";
+          const serverName = `AnimeSaturn - ${hostLabel}`;
+          streams.push({
+            name: serverName,
+            server: serverName,
+            title: displayTitle,
+            url: embedUrl,
+            language: streamLanguage,
+            subtitleOnly,
+            quality: "720p",
+            behaviorHints: { notWebReady: true },
+            headers: {
+              "User-Agent": USER_AGENT,
+              Referer: watchUrl
+            }
+          });
+        }
+        continue;
+      }
       const links = collectMediaLinksFromWatchHtml(html);
       for (const link of links) {
         const mediaUrl = normalizePlayableMediaUrl(link.href);
@@ -934,6 +1284,7 @@ function extractStreamsFromAnimePath(animePath, requestedEpisode, mediaType = "t
           title: displayTitle,
           url: mediaUrl,
           language: streamLanguage,
+          subtitleOnly,
           quality: normalizeAnimeSaturnQuality(quality),
           headers: {
             "User-Agent": USER_AGENT,
@@ -952,13 +1303,13 @@ function extractStreamsFromAnimePath(animePath, requestedEpisode, mediaType = "t
 function parseExplicitRequestId(rawId) {
   const value = String(rawId || "").trim();
   if (!value) return null;
-  let match = value.match(/^kitsu:(\d+)(?::(\d+))?(?::(\d+))?$/i);
+  let match = value.match(/^(kitsu|mal|anilist|anidb):(\d+)(?::(\d+))?(?::(\d+))?$/i);
   if (match) {
     return {
-      provider: "kitsu",
-      externalId: match[1],
-      seasonFromId: match[3] ? normalizeRequestedSeason(match[2]) : null,
-      episodeFromId: match[3] ? normalizeRequestedEpisode(match[3]) : match[2] ? normalizeRequestedEpisode(match[2]) : null
+      provider: match[1].toLowerCase(),
+      externalId: match[2],
+      seasonFromId: match[4] ? normalizeRequestedSeason(match[3]) : null,
+      episodeFromId: match[4] ? normalizeRequestedEpisode(match[4]) : match[3] ? normalizeRequestedEpisode(match[3]) : null
     };
   }
   match = value.match(/^imdb:(tt\d+)(?::(\d+))?(?::(\d+))?$/i);
@@ -1010,19 +1361,21 @@ function resolveLookupRequest(id, season, episode, providerContext = null) {
   const explicit = parseExplicitRequestId(rawId);
   if (explicit) {
     const explicitSeason = Number.isInteger(explicit.seasonFromId) && explicit.seasonFromId >= 0 ? explicit.seasonFromId : null;
-    if (explicit.provider === "kitsu") {
+    if (["kitsu", "mal", "anilist", "anidb"].includes(explicit.provider)) {
       requestedSeason = explicitSeason;
     } else if (explicitSeason !== null) {
       requestedSeason = explicitSeason;
     }
     if (Number.isInteger(explicit.episodeFromId) && explicit.episodeFromId > 0) {
       requestedEpisode = explicit.episodeFromId;
+    } else if (["kitsu", "mal", "anilist", "anidb", "imdb", "tmdb", "tvdb"].includes(String(explicit.provider || "").toLowerCase())) {
+      requestedEpisode = resolveAnimeEpisode(explicit.provider, providerContext, requestedEpisode);
     }
     return {
       provider: explicit.provider,
       externalId: explicit.externalId,
       season: requestedSeason,
-      episode: requestedEpisode
+      episode: resolveAnimeEpisode(explicit.provider, providerContext, requestedEpisode)
     };
   }
   const contextKitsu = parsePositiveInt(providerContext == null ? void 0 : providerContext.kitsuId);
@@ -1031,7 +1384,34 @@ function resolveLookupRequest(id, season, episode, providerContext = null) {
       provider: "kitsu",
       externalId: String(contextKitsu),
       season: null,
-      episode: requestedEpisode
+      episode: resolveAnimeEpisode("kitsu", providerContext, requestedEpisode)
+    };
+  }
+  const contextMal = parsePositiveInt(providerContext == null ? void 0 : providerContext.malId);
+  if (contextMal) {
+    return {
+      provider: "mal",
+      externalId: String(contextMal),
+      season: null,
+      episode: resolveAnimeEpisode("mal", providerContext, requestedEpisode)
+    };
+  }
+  const contextAnilist = parsePositiveInt(providerContext == null ? void 0 : providerContext.anilistId);
+  if (contextAnilist) {
+    return {
+      provider: "anilist",
+      externalId: String(contextAnilist),
+      season: null,
+      episode: resolveAnimeEpisode("anilist", providerContext, requestedEpisode)
+    };
+  }
+  const contextAnidb = parsePositiveInt(providerContext == null ? void 0 : providerContext.anidbId);
+  if (contextAnidb) {
+    return {
+      provider: "anidb",
+      externalId: String(contextAnidb),
+      season: null,
+      episode: resolveAnimeEpisode("anidb", providerContext, requestedEpisode)
     };
   }
   const contextImdb = /^tt\d+$/i.test(String((providerContext == null ? void 0 : providerContext.imdbId) || "").trim()) ? String(providerContext.imdbId).trim() : null;
@@ -1040,7 +1420,7 @@ function resolveLookupRequest(id, season, episode, providerContext = null) {
       provider: "imdb",
       externalId: contextImdb,
       season: requestedSeason,
-      episode: requestedEpisode
+      episode: resolveAnimeEpisode("imdb", providerContext, requestedEpisode)
     };
   }
   const contextTmdb = /^\d+$/.test(String((providerContext == null ? void 0 : providerContext.tmdbId) || "").trim()) ? String(providerContext.tmdbId).trim() : null;
@@ -1049,7 +1429,7 @@ function resolveLookupRequest(id, season, episode, providerContext = null) {
       provider: "tmdb",
       externalId: contextTmdb,
       season: requestedSeason,
-      episode: requestedEpisode
+      episode: resolveAnimeEpisode("tmdb", providerContext, requestedEpisode)
     };
   }
   return null;
@@ -1061,9 +1441,9 @@ function fetchMappingPayload(lookup, providerContext = null) {
     const externalId = String(lookup.externalId || "").trim();
     const requestedEpisode = normalizeRequestedEpisode(lookup.episode);
     const requestedSeason = normalizeRequestedSeason(lookup.season);
-    if (!["kitsu", "imdb", "tmdb"].includes(provider)) return null;
+    if (!["kitsu", "mal", "anilist", "anidb", "imdb", "tmdb"].includes(provider)) return null;
     if (!externalId) return null;
-    const mappingLanguage = provider === "kitsu" ? "it" : getMappingLanguage(providerContext);
+    const mappingLanguage = ["kitsu", "mal", "anilist", "anidb"].includes(provider) ? "it" : getMappingLanguage(providerContext);
     const mappingLanguageToken = mappingLanguage || "default";
     const cacheKey = `${provider}:${externalId}:s=${requestedSeason != null ? requestedSeason : "na"}:ep=${requestedEpisode}:lang=${mappingLanguageToken}`;
     const cached = getCached(caches.mapping, cacheKey);
@@ -1112,19 +1492,14 @@ function extractTmdbIdFromMappingPayload(mappingPayload) {
   return /^\d+$/.test(text) ? text : null;
 }
 function resolveEpisodeFromMappingPayload(mappingPayload, fallbackEpisode) {
-  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
-  const fromKitsu = parsePositiveInt((_a = mappingPayload == null ? void 0 : mappingPayload.kitsu) == null ? void 0 : _a.episode);
-  if (fromKitsu) return fromKitsu;
-  const fromRequested = parsePositiveInt((_b = mappingPayload == null ? void 0 : mappingPayload.requested) == null ? void 0 : _b.episode);
-  if (fromRequested) return fromRequested;
-  const fromTmdbRaw = parsePositiveInt(
-    ((_d = (_c = mappingPayload == null ? void 0 : mappingPayload.mappings) == null ? void 0 : _c.tmdb_episode) == null ? void 0 : _d.rawEpisodeNumber) || ((_f = (_e = mappingPayload == null ? void 0 : mappingPayload.mappings) == null ? void 0 : _e.tmdb_episode) == null ? void 0 : _f.raw_episode_number) || ((_h = (_g = mappingPayload == null ? void 0 : mappingPayload.mappings) == null ? void 0 : _g.tmdbEpisode) == null ? void 0 : _h.rawEpisodeNumber) || ((_i = mappingPayload == null ? void 0 : mappingPayload.tmdb_episode) == null ? void 0 : _i.rawEpisodeNumber) || ((_j = mappingPayload == null ? void 0 : mappingPayload.tmdbEpisode) == null ? void 0 : _j.rawEpisodeNumber)
+  var _a;
+  return normalizeRequestedEpisode(
+    parsePositiveInt((_a = mappingPayload == null ? void 0 : mappingPayload.kitsu) == null ? void 0 : _a.episode) || fallbackEpisode
   );
-  if (fromTmdbRaw) return fromTmdbRaw;
-  return normalizeRequestedEpisode(fallbackEpisode);
 }
 function getStreams(id, type, season, episode, providerContext = null) {
   return __async(this, null, function* () {
+    var _a;
     try {
       const lookup = resolveLookupRequest(id, season, episode, providerContext);
       if (!lookup) return [];
@@ -1150,7 +1525,8 @@ function getStreams(id, type, season, episode, providerContext = null) {
         }
       }
       if (animePaths.length === 0) return [];
-      const requestedEpisode = resolveEpisodeFromMappingPayload(mappingPayload, lookup.episode);
+      const mappedEpisode = resolveEpisodeFromMappingPayload(mappingPayload, lookup.episode);
+      const requestedEpisode = resolveAnimeEpisode(lookup.provider, providerContext, mappedEpisode);
       const originalRequestedEpisode = normalizeRequestedEpisode(lookup.episode);
       const normalizedType = String(type || "").toLowerCase();
       const mediaType = normalizedType === "movie" ? "movie" : "tv";
@@ -1163,10 +1539,11 @@ function getStreams(id, type, season, episode, providerContext = null) {
       const deduped = [];
       const seen = /* @__PURE__ */ new Set();
       for (const stream of streams) {
-        const normalizedUrl = normalizePlayableMediaUrl(stream.url);
+        const isNotWebReady = (_a = stream.behaviorHints) == null ? void 0 : _a.notWebReady;
+        const normalizedUrl = !isNotWebReady ? normalizePlayableMediaUrl(stream.url) : stream.url;
         if (!normalizedUrl || seen.has(normalizedUrl)) continue;
         seen.add(normalizedUrl);
-        deduped.push(__spreadProps(__spreadValues({}, stream), { url: normalizedUrl }));
+        deduped.push(isNotWebReady ? stream : __spreadProps(__spreadValues({}, stream), { url: normalizedUrl }));
       }
       return deduped.map((stream) => formatStream(stream, "AnimeSaturn")).filter(Boolean);
     } catch (error) {
@@ -1175,4 +1552,4 @@ function getStreams(id, type, season, episode, providerContext = null) {
     }
   });
 }
-module.exports = { getStreams };
+module.exports = { getStreams, sanitizeAnimeTitle };
