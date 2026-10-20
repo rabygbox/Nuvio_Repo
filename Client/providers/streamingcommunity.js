@@ -1,58 +1,97 @@
-var __defProp = Object.defineProperty;
-var __defProps = Object.defineProperties;
-var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
-var __objRest = (source, exclude) => {
-  var target = {};
-  for (var prop in source)
-    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
-      target[prop] = source[prop];
-  if (source != null && __getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(source)) {
-      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
-        target[prop] = source[prop];
-    }
-  return target;
-};
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
-var __async = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
+
+// src/utils/diagnostic_logging.js
+var require_diagnostic_logging = __commonJS({
+  "src/utils/diagnostic_logging.js"(exports2, module2) {
+    "use strict";
+    var _a;
+    var server = typeof process !== "undefined" && ((_a = process.versions) == null ? void 0 : _a.node);
+    var key = /* @__PURE__ */ Symbol.for("easystreams.diagnostics");
+    var state = server ? globalThis[key] || (globalThis[key] = { until: 0, window: 0, emitted: 0 }) : { until: 0 };
+    function diagnosticsEnabled() {
+      return Boolean(server && Date.now() < state.until);
+    }
+    function diagnosticsStatus() {
+      return { enabled: diagnosticsEnabled(), expiresAt: diagnosticsEnabled() ? state.until : null };
+    }
+    function setDiagnostics(minutes) {
+      if (!Number.isInteger(minutes) || minutes < 0 || minutes > 15) {
+        throw new Error("La durata della diagnostica deve essere tra 0 e 15 minuti.");
       }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
+      state.until = minutes ? Date.now() + minutes * 6e4 : 0;
+      state.window = Date.now();
+      state.emitted = 0;
+      return diagnosticsStatus();
+    }
+    function diagnosticLog2(tag, payload) {
+      if (!diagnosticsEnabled()) return;
+      const now = Date.now();
+      if (now - state.window >= 6e4) {
+        state.window = now;
+        state.emitted = 0;
       }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
+      if (state.emitted >= 60) return;
+      state.emitted++;
+      console.warn(tag, JSON.stringify(payload()));
+    }
+    function writeWarning(args, write) {
+      const text = typeof args[0] === "string" ? args[0] : "";
+      const upstream = text === "[Fetch] Network failure:" || /^\[Cinejoy\] (?:Fallback server .+ failed:|.+ extraction failed:)/.test(text);
+      if (!upstream || diagnosticsEnabled()) return write(...args);
+      const detail = args[1] && typeof args[1] === "object" ? args[1] : {};
+      const bucket = JSON.stringify([
+        text.slice(0, 512),
+        ...["provider", "phase", "method", "host", "proxy", "name", "code", "status", "cause", "message"].map((key2) => String(detail[key2] || "").slice(0, 1024))
+      ]);
+      const warnings = state.warnings || (state.warnings = /* @__PURE__ */ new Map());
+      const now = Date.now();
+      const previous = warnings.get(bucket);
+      if (!previous) {
+        if (warnings.size >= 128) warnings.delete(warnings.keys().next().value);
+        warnings.set(bucket, { at: now, suppressed: 0 });
+        return write(...args);
+      }
+      if (now - previous.at < 6e4) {
+        previous.suppressed++;
+        return;
+      }
+      const repeated = previous.suppressed;
+      previous.at = now;
+      previous.suppressed = 0;
+      return write(...args, ...repeated ? [`[${repeated} avvisi uguali raggruppati nell'intervallo precedente]`] : []);
+    }
+    module2.exports = { diagnosticsEnabled, diagnosticsStatus, setDiagnostics, diagnosticLog: diagnosticLog2, writeWarning };
+  }
+});
+
+// src/utils/provider_errors.js
+var require_provider_errors = __commonJS({
+  "src/utils/provider_errors.js"(exports2, module2) {
+    "use strict";
+    function describeProviderError(error) {
+      const cause = error == null ? void 0 : error.cause;
+      return {
+        name: String((error == null ? void 0 : error.name) || "Error"),
+        message: String((error == null ? void 0 : error.message) || error || "Unknown error").slice(0, 1024),
+        code: (error == null ? void 0 : error.code) || (cause == null ? void 0 : cause.code) || null,
+        cause: (cause == null ? void 0 : cause.message) ? String(cause.message).slice(0, 1024) : null,
+        status: (error == null ? void 0 : error.status) || (error == null ? void 0 : error.statusCode) || null
+      };
+    }
+    function logProviderFailure2(provider, phase, error, details = {}) {
+      console.warn("[ProviderFailure]", {
+        ...details,
+        provider,
+        phase,
+        ...describeProviderError(error)
+      });
+    }
+    module2.exports = { describeProviderError, logProviderFailure: logProviderFailure2 };
+  }
+});
 
 // src/formatter.js
 var require_formatter = __commonJS({
@@ -149,9 +188,9 @@ var require_formatter = __commonJS({
     function formatEasyJackFilename(stream, fallbackTitle = "Stream") {
       var _a;
       const raw = String(
-        ((_a = stream == null ? void 0 : stream.behaviorHints) == null ? void 0 : _a.filename) || (stream == null ? void 0 : stream.filename) || (stream == null ? void 0 : stream.fileName) || (stream == null ? void 0 : stream.debridFilename) || fallbackTitle || "Stream"
+        ((_a = stream == null ? void 0 : stream.behaviorHints) == null ? void 0 : _a.filename) || (stream == null ? void 0 : stream.filename) || (stream == null ? void 0 : stream.fileName) || (stream == null ? void 0 : stream.debridFilename) || ""
       ).trim();
-      return raw.replace(/\\/g, "/").split("/").pop() || fallbackTitle || "Stream";
+      return raw ? raw.replace(/\\/g, "/").split("/").pop() || fallbackTitle || "Stream" : fallbackTitle || "Stream";
     }
     function formatEasyJackDescription(stream = {}, titleOverride = "") {
       const filename = formatEasyJackFilename(stream, titleOverride || stream.originalTitle || stream.title);
@@ -192,7 +231,7 @@ var require_formatter = __commonJS({
       else if (quality === "1080p") quality = "\u{1F680} FHD";
       else if (quality === "720p") quality = "\u{1F4BF} HD";
       else if (quality === "576p" || quality === "480p" || quality === "360p" || quality === "240p") quality = "\u{1F4A9} Low Quality";
-      else if (!quality || ["auto", "unknown", "unknow"].includes(String(quality).toLowerCase())) quality = "\u{1F4BF} HD";
+      else if (!quality || ["auto", "unknown", "unknow"].includes(String(quality).toLowerCase())) quality = "\u2754";
       const normalizedTitle = normalizeEpisodeTemplate(stream.title || "Stream");
       let title = `\u{1F4C1} ${normalizedTitle}`;
       let language = stream.language;
@@ -218,7 +257,7 @@ var require_formatter = __commonJS({
         pName = `\u{1F4E1} ${pName}`;
       }
       const formattedDescription = isEasyJackProvider ? formatEasyJackDescription(stream, normalizedTitle) : desc;
-      const behaviorHints = stream.behaviorHints && typeof stream.behaviorHints === "object" ? __spreadValues({}, stream.behaviorHints) : {};
+      const behaviorHints = stream.behaviorHints && typeof stream.behaviorHints === "object" ? { ...stream.behaviorHints } : {};
       let finalHeaders = stream.headers;
       if (behaviorHints.proxyHeaders && behaviorHints.proxyHeaders.request) {
         finalHeaders = behaviorHints.proxyHeaders.request;
@@ -244,7 +283,7 @@ var require_formatter = __commonJS({
       } else if (!providerExplicitNotWebReady) {
         delete behaviorHints.notWebReady;
       }
-      const finalName = pName;
+      const finalName = !isEasyJackProvider && normalizedTitle && normalizedTitle !== "Stream" ? normalizedTitle : pName;
       let finalTitle = isEasyJackProvider ? formattedDescription : `\u{1F4C1} ${normalizedTitle}`;
       if (!isEasyJackProvider) {
         if (desc) finalTitle += ` | ${desc}`;
@@ -252,7 +291,8 @@ var require_formatter = __commonJS({
       }
       const playbackReferer = stream.referer || (finalHeaders == null ? void 0 : finalHeaders.Referer) || (finalHeaders == null ? void 0 : finalHeaders.referer);
       const playbackUserAgent = stream.userAgent || (finalHeaders == null ? void 0 : finalHeaders["User-Agent"]) || (finalHeaders == null ? void 0 : finalHeaders["user-agent"]);
-      return __spreadProps(__spreadValues({}, stream), {
+      return {
+        ...stream,
         // Keep original properties
         name: finalName,
         title: finalTitle,
@@ -271,7 +311,7 @@ var require_formatter = __commonJS({
         userAgent: playbackUserAgent,
         // Explicitly ensure root headers are preserved for Nuvio
         headers: finalHeaders
-      });
+      };
     }
     module2.exports = { formatEasyJackDescription, formatStream: formatStream2 };
   }
@@ -302,38 +342,74 @@ var require_fetch_helper = __commonJS({
       }
       return { signal: void 0, cleanup: null, timed: false };
     }
-    function fetchWithTimeout(_0) {
-      return __async(this, arguments, function* (url, options = {}) {
-        if (typeof fetch === "undefined") {
-          throw new Error("No fetch implementation found!");
+    async function fetchWithTimeout(url, options = {}) {
+      if (typeof fetch === "undefined") {
+        throw new Error("No fetch implementation found!");
+      }
+      const { timeout, ...fetchOptions } = options;
+      const requestTimeout = timeout || FETCH_TIMEOUT;
+      const timeoutConfig = createTimeoutSignal(requestTimeout);
+      const requestOptions = { ...fetchOptions };
+      if (timeoutConfig.signal) {
+        if (requestOptions.signal && typeof AbortSignal !== "undefined" && typeof AbortSignal.any === "function") {
+          requestOptions.signal = AbortSignal.any([requestOptions.signal, timeoutConfig.signal]);
+        } else if (!requestOptions.signal) {
+          requestOptions.signal = timeoutConfig.signal;
         }
-        const _a = options, { timeout } = _a, fetchOptions = __objRest(_a, ["timeout"]);
-        const requestTimeout = timeout || FETCH_TIMEOUT;
-        const timeoutConfig = createTimeoutSignal(requestTimeout);
-        const requestOptions = __spreadValues({}, fetchOptions);
-        if (timeoutConfig.signal) {
-          if (requestOptions.signal && typeof AbortSignal !== "undefined" && typeof AbortSignal.any === "function") {
-            requestOptions.signal = AbortSignal.any([requestOptions.signal, timeoutConfig.signal]);
-          } else if (!requestOptions.signal) {
-            requestOptions.signal = timeoutConfig.signal;
-          }
+      }
+      try {
+        const response = await fetch(url, requestOptions);
+        return response;
+      } catch (error) {
+        if (error && error.name === "AbortError" && timeoutConfig.timed) {
+          throw new Error(`Request to ${url} timed out after ${requestTimeout}ms`);
         }
-        try {
-          const response = yield fetch(url, requestOptions);
-          return response;
-        } catch (error) {
-          if (error && error.name === "AbortError" && timeoutConfig.timed) {
-            throw new Error(`Request to ${url} timed out after ${requestTimeout}ms`);
-          }
-          throw error;
-        } finally {
-          if (typeof timeoutConfig.cleanup === "function") {
-            timeoutConfig.cleanup();
-          }
+        throw error;
+      } finally {
+        if (typeof timeoutConfig.cleanup === "function") {
+          timeoutConfig.cleanup();
         }
-      });
+      }
     }
-    module2.exports = { fetchWithTimeout, createTimeoutSignal };
+    async function fetchJsonResponseWithTimeout(url, options = {}) {
+      const { timeout, signal, ...fetchOptions } = options;
+      const parsedTimeout = Number.parseInt(String(timeout), 10);
+      const timeoutMs = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : FETCH_TIMEOUT;
+      const controller = new AbortController();
+      const abortFromCaller = () => controller.abort(signal.reason);
+      if (signal == null ? void 0 : signal.aborted) abortFromCaller();
+      else signal == null ? void 0 : signal.addEventListener("abort", abortFromCaller, { once: true });
+      let timer;
+      const deadline = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          reject(new Error(`JSON request timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      });
+      try {
+        return await Promise.race([
+          (async () => {
+            var _a, _b;
+            const response = await fetch(url, { ...fetchOptions, signal: controller.signal });
+            if (!response.ok) {
+              await ((_b = (_a = response.body) == null ? void 0 : _a.cancel) == null ? void 0 : _b.call(_a));
+              return { ok: false, status: response.status, data: null };
+            }
+            return { ok: true, status: response.status, data: await response.json() };
+          })(),
+          deadline
+        ]);
+      } finally {
+        clearTimeout(timer);
+        signal == null ? void 0 : signal.removeEventListener("abort", abortFromCaller);
+      }
+    }
+    async function fetchJsonWithTimeout(url, options = {}) {
+      const response = await fetchJsonResponseWithTimeout(url, options);
+      if (!response.ok) throw new Error(`JSON request HTTP ${response.status}`);
+      return response.data;
+    }
+    module2.exports = { fetchWithTimeout, fetchJsonWithTimeout, fetchJsonResponseWithTimeout, createTimeoutSignal };
   }
 });
 
@@ -344,38 +420,52 @@ var require_quality_helper = __commonJS({
     var USER_AGENT2 = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36";
     function checkQualityFromText2(text) {
       if (!text) return null;
+      const matches = [...String(text).matchAll(/RESOLUTION=(\d+)x(\d+)/gi)];
+      for (const m of matches) {
+        const w = parseInt(m[1], 10) || 0;
+        const h = parseInt(m[2], 10) || 0;
+        if (w >= 3800 || h >= 2140) return "4K";
+      }
       if (/RESOLUTION=\d+x2160/i.test(text) || /RESOLUTION=2160/i.test(text)) return "4K";
+      for (const m of matches) {
+        const w = parseInt(m[1], 10) || 0;
+        const h = parseInt(m[2], 10) || 0;
+        if (w >= 2500 || h >= 1400) return "1440p";
+      }
       if (/RESOLUTION=\d+x1440/i.test(text) || /RESOLUTION=1440/i.test(text)) return "1440p";
+      for (const m of matches) {
+        const w = parseInt(m[1], 10) || 0;
+        const h = parseInt(m[2], 10) || 0;
+        if (w >= 1900 || h >= 1e3) return "1080p";
+      }
       if (/RESOLUTION=\d+x1080/i.test(text) || /RESOLUTION=1080/i.test(text)) return "1080p";
       if (/RESOLUTION=\d+x720/i.test(text) || /RESOLUTION=720/i.test(text)) return "720p";
       if (/RESOLUTION=\d+x480/i.test(text) || /RESOLUTION=480/i.test(text)) return "480p";
       return null;
     }
-    function checkQualityFromPlaylist(_0) {
-      return __async(this, arguments, function* (url, headers = {}, options = {}) {
+    async function checkQualityFromPlaylist(url, headers = {}, options = {}) {
+      try {
+        const finalHeaders = { ...headers };
+        if (!finalHeaders["User-Agent"]) finalHeaders["User-Agent"] = USER_AGENT2;
+        const timeoutConfig = createTimeoutSignal(3e3);
         try {
-          const finalHeaders = __spreadValues({}, headers);
-          if (!finalHeaders["User-Agent"]) finalHeaders["User-Agent"] = USER_AGENT2;
-          const timeoutConfig = createTimeoutSignal(3e3);
-          try {
-            const fetcher = typeof options.fetcher === "function" ? options.fetcher : fetch;
-            const response = yield fetcher(url, {
-              headers: finalHeaders,
-              signal: timeoutConfig.signal
-            });
-            if (!response.ok) return null;
-            const text = yield response.text();
-            if (!text.startsWith("#EXTM3U")) return null;
-            const quality = checkQualityFromText2(text);
-            if (quality) console.log(`[QualityHelper] Detected ${quality} from playlist: ${url}`);
-            return quality;
-          } finally {
-            if (typeof timeoutConfig.cleanup === "function") timeoutConfig.cleanup();
-          }
-        } catch (_) {
-          return null;
+          const fetcher = typeof options.fetcher === "function" ? options.fetcher : fetch;
+          const response = await fetcher(url, {
+            headers: finalHeaders,
+            signal: timeoutConfig.signal
+          });
+          if (!response.ok) return null;
+          const text = await response.text();
+          if (!text.startsWith("#EXTM3U")) return null;
+          const quality = checkQualityFromText2(text);
+          if (quality) console.log(`[QualityHelper] Detected ${quality} from playlist: ${url}`);
+          return quality;
+        } finally {
+          if (typeof timeoutConfig.cleanup === "function") timeoutConfig.cleanup();
         }
-      });
+      } catch (_) {
+        return null;
+      }
     }
     function getQualityFromUrl(url) {
       if (!url) return null;
@@ -426,11 +516,11 @@ var require_local_settings = __commonJS({
         directory,
         `.${path.basename(settingsPath)}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`
       );
-      const payload = __spreadProps(__spreadValues({
-        version: SETTINGS_VERSION
-      }, settings), {
+      const payload = {
+        version: SETTINGS_VERSION,
+        ...settings,
         updatedAt: (/* @__PURE__ */ new Date()).toISOString()
-      });
+      };
       fs.mkdirSync(directory, { recursive: true, mode: 448 });
       try {
         fs.writeFileSync(temporaryPath, `${JSON.stringify(payload, null, 2)}
@@ -582,7 +672,7 @@ var require_provider_proxy_settings = __commonJS({
       );
       fs.mkdirSync(directory, { recursive: true, mode: 448 });
       try {
-        fs.writeFileSync(temporaryPath, `${JSON.stringify(__spreadProps(__spreadValues({}, settings), { updatedAt: (/* @__PURE__ */ new Date()).toISOString() }), null, 2)}
+        fs.writeFileSync(temporaryPath, `${JSON.stringify({ ...settings, updatedAt: (/* @__PURE__ */ new Date()).toISOString() }, null, 2)}
 `, {
           encoding: "utf8",
           mode: 384
@@ -726,6 +816,12 @@ var require_runtime_env = __commonJS({
         help: "Dominio unico usato per mapping anime, ID e ricerca rapida. Default: animemapping.realbestia.com.",
         defaultValue: "https://animemapping.realbestia.com"
       },
+      EASYJACK_TORBOX_PROBE_KEY: {
+        label: "API key TorBox per il probe lingue",
+        help: "Account TorBox dedicato: legge l'header dei file cached per risolvere le lingue audio reali dei MULTI. Non viene usato per gli stream.",
+        defaultValue: "",
+        secret: true
+      },
       EASYJACK_TMDB_API_KEY: {
         label: "API key TMDB per le identit\xE0",
         help: "Chiave TMDB server-side usata per completare e verificare IMDb/TMDB dei torrent.",
@@ -786,7 +882,7 @@ var require_runtime_env = __commonJS({
           Object.entries(parsedValues).filter(([key]) => Object.prototype.hasOwnProperty.call(RUNTIME_ENV_DEFINITIONS, key))
         );
         const defaultValues = getDefaultRuntimeValues();
-        const completeValues = __spreadValues(__spreadValues({}, defaultValues), values);
+        const completeValues = { ...defaultValues, ...values };
         let needsRepair = Object.keys(parsedValues).some((key) => !Object.prototype.hasOwnProperty.call(RUNTIME_ENV_DEFINITIONS, key)) || Object.keys(defaultValues).some((key) => !Object.prototype.hasOwnProperty.call(parsedValues, key));
         for (const [key, definition] of Object.entries(RUNTIME_ENV_DEFINITIONS)) {
           if (!isValidSocksRuntimeProxyValue(key, completeValues[key])) {
@@ -901,7 +997,7 @@ var require_runtime_env = __commonJS({
       var _a;
       if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Variabili runtime non valide");
       const previous = ((_a = readStoredSettings()) == null ? void 0 : _a.values) || {};
-      const values = __spreadValues({}, previous);
+      const values = { ...previous };
       for (const [key, value] of Object.entries(input)) {
         if (!Object.prototype.hasOwnProperty.call(RUNTIME_ENV_DEFINITIONS, key)) {
           throw new Error(`Variabile runtime non consentita: ${key}`);
@@ -982,19 +1078,17 @@ var require_cf_bypass = __commonJS({
     var DEFAULT_FLARE_PROXY = String(
       process.env.FETCHER_PROXY || process.env.EASYJACK_WARP_PROXY_URL || "socks5h://warp-proxy:1080"
     ).trim();
-    function destroySession(endpoint, sessionId) {
-      return __async(this, null, function* () {
-        if (!sessionId) return;
-        try {
-          yield fetch(`${endpoint}/v1`, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ cmd: "sessions.destroy", session: sessionId }),
-            signal: AbortSignal.timeout(5e3)
-          });
-        } catch (_) {
-        }
-      });
+    async function destroySession(endpoint, sessionId) {
+      if (!sessionId) return;
+      try {
+        await fetch(`${endpoint}/v1`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ cmd: "sessions.destroy", session: sessionId }),
+          signal: AbortSignal.timeout(5e3)
+        });
+      } catch (_) {
+      }
     }
     function buildProxyPayload(proxyUrl) {
       const raw = String(proxyUrl || "").trim();
@@ -1012,22 +1106,20 @@ var require_cf_bypass = __commonJS({
         return void 0;
       }
     }
-    function createSession(endpoint, sessionId, proxyUrl) {
-      return __async(this, null, function* () {
-        const payload = { cmd: "sessions.create", session: sessionId };
-        const proxy = buildProxyPayload(proxyUrl);
-        if (proxy) payload.proxy = proxy;
-        const response = yield fetch(`${endpoint}/v1`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(1e4)
-        });
-        const result = yield response.json();
-        if (!response.ok || result.status !== "ok") {
-          throw new Error(result.message || `FlareSolverr sessions.create HTTP ${response.status}`);
-        }
+    async function createSession(endpoint, sessionId, proxyUrl) {
+      const payload = { cmd: "sessions.create", session: sessionId };
+      const proxy = buildProxyPayload(proxyUrl);
+      if (proxy) payload.proxy = proxy;
+      const response = await fetch(`${endpoint}/v1`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(1e4)
       });
+      const result = await response.json();
+      if (!response.ok || result.status !== "ok") {
+        throw new Error(result.message || `FlareSolverr sessions.create HTTP ${response.status}`);
+      }
     }
     function getClearance(url, provider = "default", options = {}) {
       if (activeBypasses.has(provider)) return activeBypasses.get(provider);
@@ -1035,61 +1127,59 @@ var require_cf_bypass = __commonJS({
       activeBypasses.set(provider, promise);
       return promise;
     }
-    function resolveWithFlareSolverr(_0, _1) {
-      return __async(this, arguments, function* (url, provider, options = {}) {
-        var _a, _b, _c, _d, _e;
-        const sessionFile = path.join(sessionDir(), `cf-session-${provider}.json`);
-        let cookies = "";
+    async function resolveWithFlareSolverr(url, provider, options = {}) {
+      var _a, _b, _c, _d, _e;
+      const sessionFile = path.join(sessionDir(), `cf-session-${provider}.json`);
+      let cookies = "";
+      try {
+        cookies = String(JSON.parse(fs.readFileSync(sessionFile, "utf8")).cookies || "");
+      } catch (_) {
+      }
+      const timeout = Number.parseInt(options.maxTimeout || options.requestTimeout || DEFAULT_TIMEOUT, 10);
+      const sessionId = `easystreams-${provider}`;
+      const payload = { cmd: "request.get", url, maxTimeout: Number.isFinite(timeout) ? timeout : DEFAULT_TIMEOUT, session: sessionId };
+      const proxyUrl = String(options.proxyUrl || "").trim();
+      if (cookies) payload.cookies = cookies.split(";").map((item) => {
+        const index = item.indexOf("=");
+        return index > 0 ? { name: item.slice(0, index).trim(), value: item.slice(index + 1).trim() } : null;
+      }).filter(Boolean);
+      let lastError;
+      for (let attempt = 0; attempt < FLARESOLVERR_URLS.length; attempt++) {
+        const endpoint = FLARESOLVERR_URLS[nextUrl++ % FLARESOLVERR_URLS.length];
         try {
-          cookies = String(JSON.parse(fs.readFileSync(sessionFile, "utf8")).cookies || "");
-        } catch (_) {
-        }
-        const timeout = Number.parseInt(options.maxTimeout || options.requestTimeout || DEFAULT_TIMEOUT, 10);
-        const sessionId = `easystreams-${provider}`;
-        const payload = { cmd: "request.get", url, maxTimeout: Number.isFinite(timeout) ? timeout : DEFAULT_TIMEOUT, session: sessionId };
-        const proxyUrl = String(options.proxyUrl || "").trim();
-        if (cookies) payload.cookies = cookies.split(";").map((item) => {
-          const index = item.indexOf("=");
-          return index > 0 ? { name: item.slice(0, index).trim(), value: item.slice(index + 1).trim() } : null;
-        }).filter(Boolean);
-        let lastError;
-        for (let attempt = 0; attempt < FLARESOLVERR_URLS.length; attempt++) {
-          const endpoint = FLARESOLVERR_URLS[nextUrl++ % FLARESOLVERR_URLS.length];
+          await destroySession(endpoint, sessionId);
+          await createSession(endpoint, sessionId, proxyUrl);
+          const response = await fetch(`${endpoint}/v1`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(Math.max(timeout + 5e3, 1e4))
+          });
+          const result = await response.json();
+          if (!response.ok || result.status !== "ok") throw new Error(result.message || `FlareSolverr HTTP ${response.status}`);
+          const solvedCookies = Array.isArray((_a = result.solution) == null ? void 0 : _a.cookies) ? result.solution.cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ") : cookies;
+          const data = {
+            userAgent: ((_b = result.solution) == null ? void 0 : _b.userAgent) || "",
+            cookies: solvedCookies,
+            url: ((_c = result.solution) == null ? void 0 : _c.url) || url,
+            response: ((_d = result.solution) == null ? void 0 : _d.response) || "",
+            responseText: ((_e = result.solution) == null ? void 0 : _e.response) || "",
+            cookieDomains: [],
+            timestamp: Date.now()
+          };
           try {
-            yield destroySession(endpoint, sessionId);
-            yield createSession(endpoint, sessionId, proxyUrl);
-            const response = yield fetch(`${endpoint}/v1`, {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify(payload),
-              signal: AbortSignal.timeout(Math.max(timeout + 5e3, 1e4))
-            });
-            const result = yield response.json();
-            if (!response.ok || result.status !== "ok") throw new Error(result.message || `FlareSolverr HTTP ${response.status}`);
-            const solvedCookies = Array.isArray((_a = result.solution) == null ? void 0 : _a.cookies) ? result.solution.cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ") : cookies;
-            const data = {
-              userAgent: ((_b = result.solution) == null ? void 0 : _b.userAgent) || "",
-              cookies: solvedCookies,
-              url: ((_c = result.solution) == null ? void 0 : _c.url) || url,
-              response: ((_d = result.solution) == null ? void 0 : _d.response) || "",
-              responseText: ((_e = result.solution) == null ? void 0 : _e.response) || "",
-              cookieDomains: [],
-              timestamp: Date.now()
-            };
-            try {
-              fs.writeFileSync(sessionFile, JSON.stringify(data, null, 2));
-            } catch (_) {
-            }
-            yield destroySession(endpoint, sessionId);
-            console.log(`[CF][${provider}] FlareSolverr bypass completato`);
-            return data;
-          } catch (error) {
-            lastError = error;
-            yield destroySession(endpoint, sessionId);
+            fs.writeFileSync(sessionFile, JSON.stringify(data, null, 2));
+          } catch (_) {
           }
+          await destroySession(endpoint, sessionId);
+          console.log(`[CF][${provider}] FlareSolverr bypass completato`);
+          return data;
+        } catch (error) {
+          lastError = error;
+          await destroySession(endpoint, sessionId);
         }
-        throw lastError || new Error("FlareSolverr non disponibile");
-      });
+      }
+      throw lastError || new Error("FlareSolverr non disponibile");
     }
     function hasActiveBypass(provider) {
       return activeBypasses.has(provider);
@@ -1160,20 +1250,18 @@ var require_cf_bypass = __commonJS({
     function nextFlareSolverrEndpoint() {
       return FLARESOLVERR_URLS[nextUrl++ % FLARESOLVERR_URLS.length];
     }
-    function flareV1(endpoint, payload, timeoutMs) {
-      return __async(this, null, function* () {
-        const response = yield fetch(`${endpoint}/v1`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(Math.max(Number(timeoutMs) || DEFAULT_TIMEOUT, 1e4))
-        });
-        const result = yield response.json();
-        if (!response.ok || result.status !== "ok") {
-          throw new Error((result == null ? void 0 : result.message) || `FlareSolverr HTTP ${response.status}`);
-        }
-        return result;
+    async function flareV1(endpoint, payload, timeoutMs) {
+      const response = await fetch(`${endpoint}/v1`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(Math.max(Number(timeoutMs) || DEFAULT_TIMEOUT, 1e4))
       });
+      const result = await response.json();
+      if (!response.ok || result.status !== "ok") {
+        throw new Error((result == null ? void 0 : result.message) || `FlareSolverr HTTP ${response.status}`);
+      }
+      return result;
     }
     function captureClearance(state, solution) {
       var _a;
@@ -1187,46 +1275,44 @@ var require_cf_bypass = __commonJS({
       if (cookies) state.cookies = cookies;
       if (solution == null ? void 0 : solution.userAgent) state.userAgent = solution.userAgent;
     }
-    function flareRequestOnce(_0) {
-      return __async(this, arguments, function* (provider, {
+    async function flareRequestOnce(provider, {
+      url,
+      method = "GET",
+      postData = null,
+      proxyUrl = "",
+      maxTimeout = DEFAULT_TIMEOUT
+    } = {}) {
+      if (!url) throw new Error("URL mancante");
+      const state = flareSessionState(provider);
+      const effectiveProxy = setFlareProxy(state, proxyUrl || state.proxyUrl || DEFAULT_FLARE_PROXY);
+      const endpoint = nextFlareSolverrEndpoint();
+      const requestedTimeout = Number(maxTimeout);
+      const solverTimeout = Number.isFinite(requestedTimeout) && requestedTimeout > 0 ? Math.max(requestedTimeout, ONE_SHOT_MIN_TIMEOUT) : DEFAULT_TIMEOUT;
+      const payload = {
+        cmd: method === "POST" ? "request.post" : "request.get",
         url,
-        method = "GET",
-        postData = null,
-        proxyUrl = "",
-        maxTimeout = DEFAULT_TIMEOUT
-      } = {}) {
-        if (!url) throw new Error("URL mancante");
-        const state = flareSessionState(provider);
-        const effectiveProxy = setFlareProxy(state, proxyUrl || state.proxyUrl || DEFAULT_FLARE_PROXY);
-        const endpoint = nextFlareSolverrEndpoint();
-        const requestedTimeout = Number(maxTimeout);
-        const solverTimeout = Number.isFinite(requestedTimeout) && requestedTimeout > 0 ? Math.max(requestedTimeout, ONE_SHOT_MIN_TIMEOUT) : DEFAULT_TIMEOUT;
-        const payload = {
-          cmd: method === "POST" ? "request.post" : "request.get",
-          url,
-          maxTimeout: solverTimeout
-        };
-        const proxy = buildProxyPayload(effectiveProxy);
-        if (proxy) payload.proxy = proxy;
-        if (state.cookies) {
-          payload.cookies = state.cookies.split(";").map((item) => {
-            const index = item.indexOf("=");
-            return index > 0 ? { name: item.slice(0, index).trim(), value: item.slice(index + 1).trim() } : null;
-          }).filter(Boolean);
-        }
-        if (postData != null) payload.postData = postData;
-        const result = yield flareV1(endpoint, payload, solverTimeout + 5e3);
-        const solution = result.solution || {};
-        const status = Number(solution.status || 0);
-        if (status >= 400) throw new Error(`HTTP ${status}`);
-        captureClearance(state, solution);
-        return {
-          status,
-          text: String(solution.response || ""),
-          url: solution.url || url,
-          cookies: state.cookies || ""
-        };
-      });
+        maxTimeout: solverTimeout
+      };
+      const proxy = buildProxyPayload(effectiveProxy);
+      if (proxy) payload.proxy = proxy;
+      if (state.cookies) {
+        payload.cookies = state.cookies.split(";").map((item) => {
+          const index = item.indexOf("=");
+          return index > 0 ? { name: item.slice(0, index).trim(), value: item.slice(index + 1).trim() } : null;
+        }).filter(Boolean);
+      }
+      if (postData != null) payload.postData = postData;
+      const result = await flareV1(endpoint, payload, solverTimeout + 5e3);
+      const solution = result.solution || {};
+      const status = Number(solution.status || 0);
+      if (status >= 400) throw new Error(`HTTP ${status}`);
+      captureClearance(state, solution);
+      return {
+        status,
+        text: String(solution.response || ""),
+        url: solution.url || url,
+        cookies: state.cookies || ""
+      };
     }
     function warmFlareOnce(provider, warmUrl, { proxyUrl = "" } = {}) {
       const state = flareSessionState(provider);
@@ -1235,16 +1321,16 @@ var require_cf_bypass = __commonJS({
       if (state.ready) return Promise.resolve(true);
       if (isFlareSessionBlocked2(provider)) return Promise.resolve(false);
       if (state.warmPromise) return state.warmPromise;
-      state.warmPromise = (() => __async(null, null, function* () {
+      state.warmPromise = (async () => {
         if (!warmUrl) throw new Error("URL di warm-up mancante");
-        yield flareRequestOnce(provider, {
+        await flareRequestOnce(provider, {
           url: warmUrl,
           proxyUrl: nextProxy,
           maxTimeout: DEFAULT_TIMEOUT
         });
         state.ready = true;
         return true;
-      }))().catch((error) => {
+      })().catch((error) => {
         resetFlareClearance(state);
         if (isFlareBlockError(error)) {
           markFlareSessionBlocked(state);
@@ -1272,12 +1358,12 @@ var require_cf_bypass = __commonJS({
       if (state.ready) return Promise.resolve(true);
       if (isFlareSessionBlocked2(provider)) return Promise.resolve(false);
       if (state.warmPromise) return state.warmPromise;
-      state.warmPromise = (() => __async(null, null, function* () {
+      state.warmPromise = (async () => {
         if (!warmUrl) throw new Error("URL di warm-up mancante");
         const endpoint = nextFlareSolverrEndpoint();
-        yield destroySession(endpoint, state.sessionId);
-        yield createSession(endpoint, state.sessionId, nextProxy);
-        const result = yield flareV1(endpoint, {
+        await destroySession(endpoint, state.sessionId);
+        await createSession(endpoint, state.sessionId, nextProxy);
+        const result = await flareV1(endpoint, {
           cmd: "request.get",
           url: warmUrl,
           maxTimeout: DEFAULT_TIMEOUT,
@@ -1286,7 +1372,7 @@ var require_cf_bypass = __commonJS({
         captureClearance(state, result.solution);
         state.ready = true;
         return true;
-      }))().catch((error) => {
+      })().catch((error) => {
         resetFlareClearance(state);
         if (isFlareBlockError(error)) {
           markFlareSessionBlocked(state);
@@ -1305,9 +1391,9 @@ var require_cf_bypass = __commonJS({
           if (state.proactivePromise) return state.proactivePromise;
           const warmUrl3 = state.warmUrl || defaultWarmUrl(provider);
           if (!warmUrl3 || isFlareSessionBlocked2(provider)) return Promise.resolve(false);
-          state.proactivePromise = (() => __async(null, null, function* () {
+          state.proactivePromise = (async () => {
             try {
-              const probe = yield tlsFetch(provider, {
+              const probe = await tlsFetch(provider, {
                 url: warmUrl3,
                 proxyUrl: state.proxyUrl,
                 oneShot: true,
@@ -1328,7 +1414,7 @@ var require_cf_bypass = __commonJS({
               }
               return refreshFlareSession(provider);
             }
-          }))().finally(() => {
+          })().finally(() => {
             state.proactivePromise = null;
           });
           return state.proactivePromise;
@@ -1336,9 +1422,9 @@ var require_cf_bypass = __commonJS({
         if (state.refreshPromise) return state.refreshPromise;
         const warmUrl2 = state.warmUrl || defaultWarmUrl(provider);
         if (!warmUrl2) return Promise.resolve(false);
-        state.refreshPromise = (() => __async(null, null, function* () {
+        state.refreshPromise = (async () => {
           try {
-            yield flareRequestOnce(provider, {
+            await flareRequestOnce(provider, {
               url: warmUrl2,
               proxyUrl: state.proxyUrl,
               maxTimeout: DEFAULT_TIMEOUT
@@ -1356,16 +1442,16 @@ var require_cf_bypass = __commonJS({
           } finally {
             state.refreshPromise = null;
           }
-        }))();
+        })();
         return state.refreshPromise;
       }
       if (state.refreshPromise) return state.refreshPromise;
       const warmUrl = state.warmUrl || defaultWarmUrl(provider);
       if (!warmUrl) return Promise.resolve(false);
       state.warmUrl = warmUrl;
-      state.refreshPromise = (() => __async(null, null, function* () {
+      state.refreshPromise = (async () => {
         try {
-          const result = yield flareV1(nextFlareSolverrEndpoint(), {
+          const result = await flareV1(nextFlareSolverrEndpoint(), {
             cmd: "request.get",
             url: state.warmUrl,
             maxTimeout: DEFAULT_TIMEOUT,
@@ -1384,175 +1470,169 @@ var require_cf_bypass = __commonJS({
             markFlareSessionBlocked(state);
             return false;
           }
-          yield warmFlareSession2(provider, state.warmUrl, { proxyUrl: state.proxyUrl }).catch(() => {
+          await warmFlareSession2(provider, state.warmUrl, { proxyUrl: state.proxyUrl }).catch(() => {
           });
           return false;
         } finally {
           state.refreshPromise = null;
         }
-      }))();
+      })();
       return state.refreshPromise;
     }
-    function flareRequest(_0) {
-      return __async(this, arguments, function* (provider, { url, method = "GET", postData = null, headers = null, maxTimeout = DEFAULT_TIMEOUT } = {}) {
-        if (usesOneShotFlare(provider)) {
-          return flareRequestOnce(provider, { url, method, postData, maxTimeout });
+    async function flareRequest(provider, { url, method = "GET", postData = null, headers = null, maxTimeout = DEFAULT_TIMEOUT } = {}) {
+      if (usesOneShotFlare(provider)) {
+        return flareRequestOnce(provider, { url, method, postData, maxTimeout });
+      }
+      if (!url) throw new Error("URL mancante");
+      const state = flareSessionState(provider);
+      if (!state.ready) {
+        const warmUrl = state.warmUrl || defaultWarmUrl(provider);
+        if (warmUrl) {
+          await warmFlareSession2(provider, warmUrl, { proxyUrl: state.proxyUrl }).catch(() => {
+          });
         }
-        if (!url) throw new Error("URL mancante");
-        const state = flareSessionState(provider);
         if (!state.ready) {
+          throw new Error("Sessione FlareSolverr non pronta");
+        }
+      }
+      if (state.inFlight || state.refreshPromise || state.warmPromise) {
+        throw new Error("Sessione FlareSolverr occupata");
+      }
+      const endpoint = nextFlareSolverrEndpoint();
+      const payload = {
+        cmd: method === "POST" ? "request.post" : "request.get",
+        url,
+        maxTimeout,
+        session: state.sessionId
+      };
+      if (postData != null) payload.postData = postData;
+      state.inFlight = true;
+      try {
+        const result = await flareV1(endpoint, payload, Number(maxTimeout) + 5e3);
+        const solution = result.solution || {};
+        const status = Number(solution.status || 0);
+        if (status >= 400) throw new Error(`HTTP ${status}`);
+        state.failStreak = 0;
+        captureClearance(state, solution);
+        const cookies = Array.isArray(solution == null ? void 0 : solution.cookies) ? solution.cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ") : state.cookies || "";
+        return { status, text: String(solution.response || ""), url: solution.url || url, cookies };
+      } catch (error) {
+        const message = String((error == null ? void 0 : error.message) || "");
+        if (/does not exist|no session/i.test(message)) {
+          state.ready = false;
           const warmUrl = state.warmUrl || defaultWarmUrl(provider);
           if (warmUrl) {
-            yield warmFlareSession2(provider, warmUrl, { proxyUrl: state.proxyUrl }).catch(() => {
+            await warmFlareSession2(provider, warmUrl, { proxyUrl: state.proxyUrl }).catch(() => {
             });
-          }
-          if (!state.ready) {
-            throw new Error("Sessione FlareSolverr non pronta");
-          }
-        }
-        if (state.inFlight || state.refreshPromise || state.warmPromise) {
-          throw new Error("Sessione FlareSolverr occupata");
-        }
-        const endpoint = nextFlareSolverrEndpoint();
-        const payload = {
-          cmd: method === "POST" ? "request.post" : "request.get",
-          url,
-          maxTimeout,
-          session: state.sessionId
-        };
-        if (postData != null) payload.postData = postData;
-        state.inFlight = true;
-        try {
-          const result = yield flareV1(endpoint, payload, Number(maxTimeout) + 5e3);
-          const solution = result.solution || {};
-          const status = Number(solution.status || 0);
-          if (status >= 400) throw new Error(`HTTP ${status}`);
-          state.failStreak = 0;
-          captureClearance(state, solution);
-          const cookies = Array.isArray(solution == null ? void 0 : solution.cookies) ? solution.cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ") : state.cookies || "";
-          return { status, text: String(solution.response || ""), url: solution.url || url, cookies };
-        } catch (error) {
-          const message = String((error == null ? void 0 : error.message) || "");
-          if (/does not exist|no session/i.test(message)) {
-            state.ready = false;
-            const warmUrl = state.warmUrl || defaultWarmUrl(provider);
-            if (warmUrl) {
-              yield warmFlareSession2(provider, warmUrl, { proxyUrl: state.proxyUrl }).catch(() => {
-              });
-              if (state.ready) {
-                const retryResult = yield flareV1(endpoint, payload, Number(maxTimeout) + 5e3);
-                const retrySolution = retryResult.solution || {};
-                const retryStatus = Number(retrySolution.status || 0);
-                if (retryStatus < 400) {
-                  state.failStreak = 0;
-                  captureClearance(state, retrySolution);
-                  const cookies = Array.isArray(retrySolution == null ? void 0 : retrySolution.cookies) ? retrySolution.cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ") : state.cookies || "";
-                  return { status: retryStatus, text: String(retrySolution.response || ""), url: retrySolution.url || url, cookies };
-                }
+            if (state.ready) {
+              const retryResult = await flareV1(endpoint, payload, Number(maxTimeout) + 5e3);
+              const retrySolution = retryResult.solution || {};
+              const retryStatus = Number(retrySolution.status || 0);
+              if (retryStatus < 400) {
+                state.failStreak = 0;
+                captureClearance(state, retrySolution);
+                const cookies = Array.isArray(retrySolution == null ? void 0 : retrySolution.cookies) ? retrySolution.cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ") : state.cookies || "";
+                return { status: retryStatus, text: String(retrySolution.response || ""), url: retrySolution.url || url, cookies };
               }
             }
           }
-          const generous = Number(maxTimeout) >= 5e3;
-          const transient = (error == null ? void 0 : error.name) === "TimeoutError" || (error == null ? void 0 : error.name) === "AbortError" || /^HTTP \d{3}$/.test(message) || !generous && /Timeout after/i.test(message);
-          if (isFlareBlockError(error)) {
-            resetFlareClearance(state);
-            markFlareSessionBlocked(state);
-            throw error;
-          }
-          const now = Date.now();
-          if (!state.failWindowStart || now - state.failWindowStart > 6e4) {
-            state.failWindowStart = now;
-            state.failStreak = 0;
-          }
-          state.failStreak = (state.failStreak || 0) + 1;
-          if (!transient || state.failStreak >= 5) {
-            state.failStreak = 0;
-            state.failWindowStart = 0;
-            if (transient) {
-              refreshFlareSession(provider).catch(() => {
-              });
-            } else {
-              state.ready = false;
-              if (state.warmUrl) {
-                warmFlareSession2(provider, state.warmUrl, { proxyUrl: state.proxyUrl }).catch(() => {
-                });
-              }
-            }
-          }
+        }
+        const generous = Number(maxTimeout) >= 5e3;
+        const transient = (error == null ? void 0 : error.name) === "TimeoutError" || (error == null ? void 0 : error.name) === "AbortError" || /^HTTP \d{3}$/.test(message) || !generous && /Timeout after/i.test(message);
+        if (isFlareBlockError(error)) {
+          resetFlareClearance(state);
+          markFlareSessionBlocked(state);
           throw error;
-        } finally {
-          state.inFlight = false;
         }
-      });
+        const now = Date.now();
+        if (!state.failWindowStart || now - state.failWindowStart > 6e4) {
+          state.failWindowStart = now;
+          state.failStreak = 0;
+        }
+        state.failStreak = (state.failStreak || 0) + 1;
+        if (!transient || state.failStreak >= 5) {
+          state.failStreak = 0;
+          state.failWindowStart = 0;
+          if (transient) {
+            refreshFlareSession(provider).catch(() => {
+            });
+          } else {
+            state.ready = false;
+            if (state.warmUrl) {
+              warmFlareSession2(provider, state.warmUrl, { proxyUrl: state.proxyUrl }).catch(() => {
+              });
+            }
+          }
+        }
+        throw error;
+      } finally {
+        state.inFlight = false;
+      }
     }
     var FETCHER_URL = (process.env.FLARE_FETCHER_URL || "http://flaresolverr:8192").replace(/\/+$/, "");
-    function tlsFetch(_0) {
-      return __async(this, arguments, function* (provider, { url, method = "GET", postData = null, headers = null, proxyUrl = "", oneShot = false, maxTimeout = 15e3 } = {}) {
-        if (!url) throw new Error("URL mancante");
-        if (isFlareSessionBusy2(provider) && !oneShot) throw new Error("Sessione FlareSolverr occupata");
-        const state = flareSessionState(provider);
-        if (proxyUrl) setFlareProxy(state, proxyUrl);
-        if (!state.cookies) {
-          if (!oneShot) {
-            const warmUrl = state.warmUrl || defaultWarmUrl(provider);
-            if (warmUrl) {
-              warmFlareSession2(provider, warmUrl, { proxyUrl: state.proxyUrl }).catch(() => {
-              });
-            }
-            throw new Error("Clearance non disponibile: sessione non ancora risolta");
+    async function tlsFetch(provider, { url, method = "GET", postData = null, headers = null, proxyUrl = "", oneShot = false, maxTimeout = 15e3 } = {}) {
+      if (!url) throw new Error("URL mancante");
+      if (isFlareSessionBusy2(provider) && !oneShot) throw new Error("Sessione FlareSolverr occupata");
+      const state = flareSessionState(provider);
+      if (proxyUrl) setFlareProxy(state, proxyUrl);
+      if (!state.cookies) {
+        if (!oneShot) {
+          const warmUrl = state.warmUrl || defaultWarmUrl(provider);
+          if (warmUrl) {
+            warmFlareSession2(provider, warmUrl, { proxyUrl: state.proxyUrl }).catch(() => {
+            });
+          }
+          throw new Error("Clearance non disponibile: sessione non ancora risolta");
+        }
+      }
+      const cleanHeaders = {};
+      if (headers && typeof headers === "object") {
+        for (const [key, value] of Object.entries(headers)) {
+          const lower = String(key || "").toLowerCase();
+          if (lower !== "user-agent" && lower !== "cookie") {
+            cleanHeaders[key] = value;
           }
         }
-        const cleanHeaders = {};
-        if (headers && typeof headers === "object") {
-          for (const [key, value] of Object.entries(headers)) {
-            const lower = String(key || "").toLowerCase();
-            if (lower !== "user-agent" && lower !== "cookie") {
-              cleanHeaders[key] = value;
-            }
-          }
-        }
-        const resolvedProxy = String(proxyUrl || state.proxyUrl || DEFAULT_FLARE_PROXY || "").trim();
-        const isDirect = resolvedProxy === "direct";
-        const payload = {
-          url,
-          method,
-          postData: postData == null ? null : String(postData),
-          cookies: state.cookies,
-          userAgent: state.userAgent || "",
-          proxy: isDirect ? "" : resolvedProxy,
-          proxyDirect: isDirect,
-          timeoutMs: Math.min(Math.max(Number(maxTimeout) || 15e3, 2e3), 6e4),
-          headers: cleanHeaders
-        };
-        const response = yield fetch(`${FETCHER_URL}/fetch`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(Number(maxTimeout) + 2e3)
-        });
-        const data = yield response.json().catch(() => ({}));
-        if (data.challenge) {
-          const error = new Error("Challenge durante il fetch");
-          error.challenge = true;
-          throw error;
-        }
-        if (data.error) throw new Error(`Fetcher: ${data.error}`);
-        const responseCookies = Array.isArray(data.responseCookies) ? data.responseCookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ") : "";
-        if (responseCookies) state.cookies = responseCookies;
-        const cookies = responseCookies || state.cookies || "";
-        return { status: Number(data.status || 0), text: String(data.text || ""), url, cookies };
+      }
+      const resolvedProxy = String(proxyUrl || state.proxyUrl || DEFAULT_FLARE_PROXY || "").trim();
+      const isDirect = resolvedProxy === "direct";
+      const payload = {
+        url,
+        method,
+        postData: postData == null ? null : String(postData),
+        cookies: state.cookies,
+        userAgent: state.userAgent || "",
+        proxy: isDirect ? "" : resolvedProxy,
+        proxyDirect: isDirect,
+        timeoutMs: Math.min(Math.max(Number(maxTimeout) || 15e3, 2e3), 6e4),
+        headers: cleanHeaders
+      };
+      const response = await fetch(`${FETCHER_URL}/fetch`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(Number(maxTimeout) + 2e3)
       });
+      const data = await response.json().catch(() => ({}));
+      if (data.challenge) {
+        const error = new Error("Challenge durante il fetch");
+        error.challenge = true;
+        throw error;
+      }
+      if (data.error) throw new Error(`Fetcher: ${data.error}`);
+      const responseCookies = Array.isArray(data.responseCookies) ? data.responseCookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ") : "";
+      if (responseCookies) state.cookies = responseCookies;
+      const cookies = responseCookies || state.cookies || "";
+      return { status: Number(data.status || 0), text: String(data.text || ""), url, cookies };
     }
-    function fetchFlarePage(provider, request) {
-      return __async(this, null, function* () {
-        const req = typeof request === "string" ? { url: request } : request;
-        try {
-          return yield tlsFetch(provider, req);
-        } catch (error) {
-          if ((error == null ? void 0 : error.name) === "AbortError") throw error;
-          return req.oneShot ? flareRequestOnce(provider, req) : flareRequest(provider, req);
-        }
-      });
+    async function fetchFlarePage(provider, request) {
+      const req = typeof request === "string" ? { url: request } : request;
+      try {
+        return await tlsFetch(provider, req);
+      } catch (error) {
+        if ((error == null ? void 0 : error.name) === "AbortError") throw error;
+        return req.oneShot ? flareRequestOnce(provider, req) : flareRequest(provider, req);
+      }
     }
     module2.exports = { getClearance, hasActiveBypass, execPythonBypass, getStats, getSessionDir: sessionDir, cfSessionFilePath, flareRequest, flareRequestOnce, tlsFetch, refreshFlareSession, isFlareSessionReady: isFlareSessionReady2, isFlareSessionBusy: isFlareSessionBusy2, isFlareSessionBlocked: isFlareSessionBlocked2, warmFlareSession: warmFlareSession2, warmFlareOnce, fetchFlarePage };
   }
@@ -1638,123 +1718,133 @@ var require_vixcloud = __commonJS({
     var vixsrcConfigLoaded = Boolean(VIXSRC_BASE_URL_OVERRIDE);
     var vixsrcConfigLoadedAt = VIXSRC_BASE_URL_OVERRIDE ? Date.now() : 0;
     var vixsrcConfigPromise = null;
-    function loadVixsrcConfig() {
-      return __async(this, null, function* () {
-        if (vixsrcConfigLoaded && Date.now() - vixsrcConfigLoadedAt < VIXSRC_CONFIG_TTL_MS) {
-          return vixsrcBaseUrl;
-        }
-        if (vixsrcConfigPromise) return yield vixsrcConfigPromise;
-        vixsrcConfigPromise = (() => __async(null, null, function* () {
-          let timeoutId = null;
-          const controller = typeof AbortController === "function" ? new AbortController() : null;
-          const hasTimer = typeof setTimeout === "function" && typeof clearTimeout === "function";
-          try {
-            if (controller && hasTimer) timeoutId = setTimeout(() => controller.abort(), 5e3);
-            const configUrl = `${VIXSRC_CONFIG_URL}?_=${Date.now()}`;
-            const response = yield fetch(configUrl, __spreadValues({
-              headers: {
-                Accept: "application/json",
-                "Cache-Control": "no-cache",
-                Pragma: "no-cache"
-              }
-            }, controller ? { signal: controller.signal } : {}));
-            if (!response.ok) throw new Error(`Config HTTP ${response.status}`);
-            const config = yield response.json();
-            const nextBaseUrl = normalizeVixsrcBaseUrl(config == null ? void 0 : config.vixsrc);
-            if (nextBaseUrl) {
-              vixsrcBaseUrl = nextBaseUrl;
-              vixsrcMediaHost = new URL(nextBaseUrl).hostname;
-            }
-          } catch (error) {
-            console.warn(`[VixCloud] Vixsrc config unavailable, using fallback: ${error.message}`);
-          } finally {
-            if (timeoutId && typeof clearTimeout === "function") clearTimeout(timeoutId);
-            vixsrcConfigLoaded = true;
-            vixsrcConfigLoadedAt = Date.now();
-            vixsrcConfigPromise = null;
+    async function loadVixsrcConfig() {
+      if (vixsrcConfigLoaded && Date.now() - vixsrcConfigLoadedAt < VIXSRC_CONFIG_TTL_MS) {
+        return vixsrcBaseUrl;
+      }
+      if (vixsrcConfigPromise) return await vixsrcConfigPromise;
+      vixsrcConfigPromise = (async () => {
+        let timeoutId = null;
+        const controller = typeof AbortController === "function" ? new AbortController() : null;
+        const hasTimer = typeof setTimeout === "function" && typeof clearTimeout === "function";
+        try {
+          if (controller && hasTimer) timeoutId = setTimeout(() => controller.abort(), 5e3);
+          const configUrl = `${VIXSRC_CONFIG_URL}?_=${Date.now()}`;
+          const response = await fetch(configUrl, {
+            headers: {
+              Accept: "application/json",
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache"
+            },
+            ...controller ? { signal: controller.signal } : {}
+          });
+          if (!response.ok) throw new Error(`Config HTTP ${response.status}`);
+          const config = await response.json();
+          const nextBaseUrl = normalizeVixsrcBaseUrl(config == null ? void 0 : config.vixsrc);
+          if (nextBaseUrl) {
+            vixsrcBaseUrl = nextBaseUrl;
+            vixsrcMediaHost = new URL(nextBaseUrl).hostname;
           }
-          return vixsrcBaseUrl;
-        }))();
-        return yield vixsrcConfigPromise;
-      });
+        } catch (error) {
+          console.warn(`[VixCloud] Vixsrc config unavailable, using fallback: ${error.message}`);
+        } finally {
+          if (timeoutId && typeof clearTimeout === "function") clearTimeout(timeoutId);
+          vixsrcConfigLoaded = true;
+          vixsrcConfigLoadedAt = Date.now();
+          vixsrcConfigPromise = null;
+        }
+        return vixsrcBaseUrl;
+      })();
+      return await vixsrcConfigPromise;
     }
-    function getVixsrcBaseUrl() {
-      return __async(this, null, function* () {
-        return yield loadVixsrcConfig();
-      });
+    async function getVixsrcBaseUrl() {
+      return await loadVixsrcConfig();
     }
     function rewriteVixsrcHost(value) {
       return String(value || "").replace(/vixcloud\.co/gi, vixsrcMediaHost).replace(/vixsrc\.to/gi, vixsrcMediaHost);
     }
-    function extractVixCloud(url) {
-      return __async(this, null, function* () {
-        try {
-          yield loadVixsrcConfig();
-          const fixedUrl = rewriteVixsrcHost(url);
-          const vixsrcReferer = rewriteVixsrcHost("https://vixcloud.co/");
-          const response = yield fetchWithCloudflareCookies2(fixedUrl, {
-            forceProviderProxy: true,
+    async function extractVixCloud(url) {
+      try {
+        await loadVixsrcConfig();
+        const fixedUrl = rewriteVixsrcHost(url);
+        const vixsrcReferer = rewriteVixsrcHost("https://vixcloud.co/");
+        const response = await fetchWithCloudflareCookies2(fixedUrl, {
+          forceProviderProxy: true,
+          headers: {
+            "User-Agent": USER_AGENT2,
+            "Referer": vixsrcReferer
+          }
+        });
+        if (!response.ok) return null;
+        const html = await response.text();
+        const streams = [];
+        const tokenRegex = /'token':\s*'(\w+)'/;
+        const expiresRegex = /'expires':\s*'(\d+)'/;
+        const urlRegex = /url:\s*'([^']+)'/;
+        const fhdRegex = /window\.canPlayFHD\s*=\s*true/;
+        const tokenMatch = tokenRegex.exec(html);
+        const expiresMatch = expiresRegex.exec(html);
+        const urlMatch = urlRegex.exec(html);
+        const fhdMatch = fhdRegex.test(html);
+        if (tokenMatch && expiresMatch && urlMatch) {
+          const token = tokenMatch[1];
+          const expires = expiresMatch[1];
+          let serverUrl = urlMatch[1];
+          let finalUrl = "";
+          if (serverUrl.includes("?b=1")) {
+            finalUrl = `${serverUrl}&token=${token}&expires=${expires}`;
+          } else {
+            finalUrl = `${serverUrl}?token=${token}&expires=${expires}`;
+          }
+          if (fhdMatch) {
+            finalUrl += "&h=1";
+          }
+          const parts = finalUrl.split("?");
+          finalUrl = parts[0] + ".m3u8";
+          if (parts.length > 1) {
+            finalUrl += "?" + parts.slice(1).join("?");
+          }
+          let quality = "1080p";
+          const streamUrl = rewriteVixsrcHost(finalUrl);
+          const detectedQuality = await checkQualityFromPlaylist(streamUrl, {
+            "User-Agent": USER_AGENT2,
+            "Referer": vixsrcReferer
+          }, {
+            fetcher: (targetUrl, options) => fetchWithCloudflareCookies2(targetUrl, options, "animeunity")
+          });
+          if (detectedQuality) quality = detectedQuality;
+          streams.push({
+            url: streamUrl,
+            quality,
+            type: "m3u8",
             headers: {
               "User-Agent": USER_AGENT2,
               "Referer": vixsrcReferer
             }
           });
-          if (!response.ok) return null;
-          const html = yield response.text();
-          const streams = [];
-          const tokenRegex = /'token':\s*'(\w+)'/;
-          const expiresRegex = /'expires':\s*'(\d+)'/;
-          const urlRegex = /url:\s*'([^']+)'/;
-          const fhdRegex = /window\.canPlayFHD\s*=\s*true/;
-          const tokenMatch = tokenRegex.exec(html);
-          const expiresMatch = expiresRegex.exec(html);
-          const urlMatch = urlRegex.exec(html);
-          const fhdMatch = fhdRegex.test(html);
-          if (tokenMatch && expiresMatch && urlMatch) {
-            const token = tokenMatch[1];
-            const expires = expiresMatch[1];
-            let serverUrl = urlMatch[1];
-            let finalUrl = "";
-            if (serverUrl.includes("?b=1")) {
-              finalUrl = `${serverUrl}&token=${token}&expires=${expires}`;
-            } else {
-              finalUrl = `${serverUrl}?token=${token}&expires=${expires}`;
-            }
-            if (fhdMatch) {
-              finalUrl += "&h=1";
-            }
-            const parts = finalUrl.split("?");
-            finalUrl = parts[0] + ".m3u8";
-            if (parts.length > 1) {
-              finalUrl += "?" + parts.slice(1).join("?");
-            }
-            let quality = "1080p";
-            const streamUrl = rewriteVixsrcHost(finalUrl);
-            const detectedQuality = yield checkQualityFromPlaylist(streamUrl, {
-              "User-Agent": USER_AGENT2,
-              "Referer": vixsrcReferer
-            }, {
-              fetcher: (targetUrl, options) => fetchWithCloudflareCookies2(targetUrl, options, "animeunity")
-            });
-            if (detectedQuality) quality = detectedQuality;
-            streams.push({
-              url: streamUrl,
-              quality,
-              type: "m3u8",
-              headers: {
-                "User-Agent": USER_AGENT2,
-                "Referer": vixsrcReferer
-              }
-            });
-          }
-          return streams;
-        } catch (e) {
-          console.error("[VixCloud] Extraction error:", e);
-          return [];
         }
-      });
+        return streams;
+      } catch (e) {
+        console.error("[VixCloud] Extraction error:", e);
+        return [];
+      }
     }
     module2.exports = { extractVixCloud, rewriteVixsrcHost, getVixsrcBaseUrl };
+  }
+});
+
+// src/utils/provider_session_scope.js
+var require_provider_session_scope = __commonJS({
+  "src/utils/provider_session_scope.js"(exports2, module2) {
+    "use strict";
+    var runner = null;
+    function setProviderSessionDetach(detach) {
+      runner = typeof detach === "function" ? detach : null;
+    }
+    function runDetachedFromProviderSession2(work) {
+      return runner ? runner(work) : work();
+    }
+    module2.exports = { setProviderSessionDetach, runDetachedFromProviderSession: runDetachedFromProviderSession2 };
   }
 });
 
@@ -1822,93 +1912,88 @@ var require_cloudflare_provider_fetch = __commonJS({
       }
       return JSON.parse(raw);
     }
-    function fetchVixsrcPage(request, providerName = "vixsrc") {
-      return __async(this, null, function* () {
-        const { tlsFetch, warmFlareOnce, refreshFlareSession, isFlareSessionReady: isFlareSessionReady2, isFlareSessionBusy: isFlareSessionBusy2 } = require_cf_bypass();
-        const { rewriteVixsrcHost } = require_vixcloud();
-        const targetUrl = rewriteVixsrcHost(request.url);
-        const updatedRequest = __spreadProps(__spreadValues({}, request), { url: targetUrl });
-        const proxyUrl = getProviderProxyUrl2(targetUrl, providerName) || getProviderProxyUrl2(targetUrl, "vixsrc") || getProviderProxyUrl2(targetUrl, "streamingcommunity") || getProviderProxyUrl2(targetUrl, "cinejoy") || getProviderProxyUrl2(targetUrl, "vidfast") || getProviderProxyUrl2(targetUrl, "animeunity");
-        const skipForBypass = (cause) => {
-          const error = new Error("Flare bypass in corso");
-          error.code = "FLARE_BYPASS_IN_PROGRESS";
-          error.cause = cause;
-          return error;
-        };
-        if (isFlareSessionBusy2("vixsrc")) {
-          throw skipForBypass();
+    async function fetchVixsrcPage(request, providerName = "vixsrc") {
+      const { tlsFetch, warmFlareOnce, refreshFlareSession, isFlareSessionReady: isFlareSessionReady2, isFlareSessionBusy: isFlareSessionBusy2 } = require_cf_bypass();
+      const { rewriteVixsrcHost } = require_vixcloud();
+      const { runDetachedFromProviderSession: runDetachedFromProviderSession2 } = require_provider_session_scope();
+      const targetUrl = rewriteVixsrcHost(request.url);
+      const updatedRequest = { ...request, url: targetUrl };
+      const proxyUrl = getProviderProxyUrl2(targetUrl, providerName) || getProviderProxyUrl2(targetUrl, "vixsrc") || getProviderProxyUrl2(targetUrl, "streamingcommunity") || getProviderProxyUrl2(targetUrl, "cinejoy") || getProviderProxyUrl2(targetUrl, "vidfast") || getProviderProxyUrl2(targetUrl, "animeunity");
+      const skipForBypass = (cause) => {
+        const error = new Error("Flare bypass in corso");
+        error.code = "FLARE_BYPASS_IN_PROGRESS";
+        error.cause = cause;
+        return error;
+      };
+      if (isFlareSessionBusy2("vixsrc")) {
+        throw skipForBypass();
+      }
+      if (!isFlareSessionReady2("vixsrc")) {
+        runDetachedFromProviderSession2(() => warmFlareOnce("vixsrc", "https://vixsrc.to", { proxyUrl }).catch(() => {
+        }));
+        throw skipForBypass();
+      }
+      try {
+        return await tlsFetch("vixsrc", { ...updatedRequest, proxyUrl, oneShot: true });
+      } catch (error) {
+        if (error == null ? void 0 : error.challenge) {
+          runDetachedFromProviderSession2(() => refreshFlareSession("vixsrc").catch(() => {
+          }));
+          throw skipForBypass(error);
         }
-        if (!isFlareSessionReady2("vixsrc")) {
-          warmFlareOnce("vixsrc", "https://vixsrc.to", { proxyUrl }).catch(() => {
-          });
-          throw skipForBypass();
-        }
+        throw error;
+      }
+    }
+    async function fetchWithCloudflareCookies2(url, options = {}, providerName = "provider") {
+      if (!IS_SERVER) {
+        const { forceProviderProxy: _fpp, dispatcher: _d, provider: _p, timeout: _t, ...clientOptions } = options || {};
+        return fetch(url, clientOptions);
+      }
+      if (isVixsrcTarget(url, providerName)) {
         try {
-          return yield tlsFetch("vixsrc", __spreadProps(__spreadValues({}, updatedRequest), { proxyUrl, oneShot: true }));
+          const page = await fetchVixsrcPage({
+            url,
+            method: options.method || "GET",
+            headers: options.headers || {},
+            postData: options.body || null,
+            maxTimeout: options.timeout || 15e3
+          }, providerName);
+          const text = String(page.text || "");
+          const status = Number(page.status || 200);
+          return {
+            ok: status >= 200 && status < 300,
+            status,
+            statusText: status === 200 ? "OK" : `HTTP ${status}`,
+            url: page.url || url,
+            text: async () => text,
+            json: async () => safeParseJson(text),
+            headers: {
+              get: (headerName) => {
+                const lower = String(headerName || "").toLowerCase();
+                if (lower === "content-type") return "text/html; charset=utf-8";
+                if (lower === "set-cookie") return page.cookies || null;
+                return null;
+              },
+              getSetCookie: () => page.cookies ? page.cookies.split("; ").filter(Boolean) : []
+            }
+          };
         } catch (error) {
-          if (error == null ? void 0 : error.challenge) {
-            refreshFlareSession("vixsrc").catch(() => {
-            });
-            throw skipForBypass(error);
+          if ((error == null ? void 0 : error.code) === "FLARE_BYPASS_IN_PROGRESS") throw error;
+          if (/Clearance non disponibile|FlareSolverr non disponibile|Sessione FlareSolverr non pronta|Sessione FlareSolverr occupata|Challenge durante il fetch/i.test(String((error == null ? void 0 : error.message) || ""))) {
+            const requestOptions2 = {
+              ...options,
+              forceProviderProxy: true
+            };
+            return fetch(url, requestOptions2);
           }
           throw error;
         }
-      });
-    }
-    function fetchWithCloudflareCookies2(_0) {
-      return __async(this, arguments, function* (url, options = {}, providerName = "provider") {
-        if (!IS_SERVER) {
-          const _a = options || {}, { forceProviderProxy: _fpp, dispatcher: _d, provider: _p } = _a, clientOptions = __objRest(_a, ["forceProviderProxy", "dispatcher", "provider"]);
-          return fetch(url, clientOptions);
-        }
-        if (isVixsrcTarget(url, providerName)) {
-          try {
-            const page = yield fetchVixsrcPage({
-              url,
-              method: options.method || "GET",
-              headers: options.headers || {},
-              postData: options.body || null,
-              maxTimeout: options.timeout || 15e3
-            }, providerName);
-            const text = String(page.text || "");
-            const status = Number(page.status || 200);
-            return {
-              ok: status >= 200 && status < 300,
-              status,
-              statusText: status === 200 ? "OK" : `HTTP ${status}`,
-              url: page.url || url,
-              text: () => __async(null, null, function* () {
-                return text;
-              }),
-              json: () => __async(null, null, function* () {
-                return safeParseJson(text);
-              }),
-              headers: {
-                get: (headerName) => {
-                  const lower = String(headerName || "").toLowerCase();
-                  if (lower === "content-type") return "text/html; charset=utf-8";
-                  if (lower === "set-cookie") return page.cookies || null;
-                  return null;
-                },
-                getSetCookie: () => page.cookies ? page.cookies.split("; ").filter(Boolean) : []
-              }
-            };
-          } catch (error) {
-            if ((error == null ? void 0 : error.code) === "FLARE_BYPASS_IN_PROGRESS") throw error;
-            if (/Clearance non disponibile|FlareSolverr non disponibile|Sessione FlareSolverr non pronta|Sessione FlareSolverr occupata|Challenge durante il fetch/i.test(String((error == null ? void 0 : error.message) || ""))) {
-              const requestOptions2 = __spreadProps(__spreadValues({}, options), {
-                forceProviderProxy: true
-              });
-              return fetch(url, requestOptions2);
-            }
-            throw error;
-          }
-        }
-        const requestOptions = __spreadProps(__spreadValues({}, options), {
-          forceProviderProxy: true
-        });
-        return fetch(url, requestOptions);
-      });
+      }
+      const requestOptions = {
+        ...options,
+        forceProviderProxy: true
+      };
+      return fetch(url, requestOptions);
     }
     module2.exports = {
       fetchWithCloudflareCookies: fetchWithCloudflareCookies2,
@@ -1924,15 +2009,41 @@ var require_vixsrc_audio_check = __commonJS({
   "src/utils/vixsrc_audio_check.js"(exports2, module2) {
     var DOMAINS_CONFIG_URL = "https://raw.githubusercontent.com/realbestia1/domains/refs/heads/main/domains.json";
     var DEFAULT_BASE_URL = "https://vixsrc.to";
+    var TMDB_API_KEY2 = String(
+      typeof process !== "undefined" && process.env && process.env.EASYJACK_TMDB_API_KEY || "68e094699525b18a70bab2f86b1fa706"
+    ).trim();
+    var TMDB_ORIGIN_TTL_MS = 5 * 60 * 1e3;
     var USER_AGENT2 = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36";
     var CONFIG_CACHE_MS = 5 * 60 * 1e3;
     var CHECK_TTL_MS = 5 * 60 * 1e3;
     var ITALIAN_AUDIO_PATTERN = /#EXT-X-MEDIA:TYPE=AUDIO.*(?:LANGUAGE="it"|LANGUAGE="ita"|NAME="Italian"|NAME="Ita")/i;
     var { fetchWithCloudflareCookies: fetchWithCloudflareCookies2 } = require_cloudflare_provider_fetch();
+    var { fetchJsonWithTimeout } = require_fetch_helper();
     var cachedBaseUrl = "";
     var cachedBaseUrlExpiresAt = 0;
     var checkResults = /* @__PURE__ */ new Map();
     var checkHandles = /* @__PURE__ */ new Map();
+    var originResults = /* @__PURE__ */ new Map();
+    async function isItalianOriginPage(path) {
+      const match = String(path || "").match(/^(movie|tv)\/(\d+)/i);
+      if (!match) return false;
+      const mediaType = match[1].toLowerCase();
+      const tmdbId = match[2];
+      const key = `${mediaType}:${tmdbId}`;
+      const cached = originResults.get(key);
+      if (cached && cached.expiresAt > Date.now()) return cached.italian;
+      try {
+        const payload = await fetchJsonWithTimeout(
+          `https://api.themoviedb.org/3/${mediaType}/${tmdbId}?api_key=${TMDB_API_KEY2}`,
+          { timeout: 3e3, headers: { Accept: "application/json" } }
+        );
+        const italian = String((payload == null ? void 0 : payload.original_language) || "").toLowerCase() === "it";
+        originResults.set(key, { italian, expiresAt: Date.now() + TMDB_ORIGIN_TTL_MS });
+        return italian;
+      } catch (e) {
+        return false;
+      }
+    }
     function vixsrcKey(pageUrl) {
       return String(pageUrl || "").replace(/^https?:\/\/[^/]+/i, "").replace(/^\/+/, "").toLowerCase();
     }
@@ -1974,26 +2085,24 @@ var require_vixsrc_audio_check = __commonJS({
         checkHandles.delete(key);
       }
     }
-    function vixsrcBaseUrl() {
-      return __async(this, null, function* () {
-        if (cachedBaseUrl && cachedBaseUrlExpiresAt > Date.now()) return cachedBaseUrl;
-        try {
-          const response = yield fetch(DOMAINS_CONFIG_URL, {
-            headers: { "User-Agent": USER_AGENT2, Accept: "application/json" }
-          });
-          if (response.ok) {
-            const payload = yield response.json();
-            const value = String((payload == null ? void 0 : payload.vixsrc) || "").trim().replace(/\/+$/, "");
-            if (value) {
-              cachedBaseUrl = value;
-              cachedBaseUrlExpiresAt = Date.now() + CONFIG_CACHE_MS;
-              return value;
-            }
+    async function vixsrcBaseUrl() {
+      if (cachedBaseUrl && cachedBaseUrlExpiresAt > Date.now()) return cachedBaseUrl;
+      try {
+        const response = await fetch(DOMAINS_CONFIG_URL, {
+          headers: { "User-Agent": USER_AGENT2, Accept: "application/json" }
+        });
+        if (response.ok) {
+          const payload = await response.json();
+          const value = String((payload == null ? void 0 : payload.vixsrc) || "").trim().replace(/\/+$/, "");
+          if (value) {
+            cachedBaseUrl = value;
+            cachedBaseUrlExpiresAt = Date.now() + CONFIG_CACHE_MS;
+            return value;
           }
-        } catch (e) {
         }
-        return cachedBaseUrl || DEFAULT_BASE_URL;
-      });
+      } catch (e) {
+      }
+      return cachedBaseUrl || DEFAULT_BASE_URL;
     }
     function jsonHeaders() {
       return {
@@ -2049,74 +2158,74 @@ var require_vixsrc_audio_check = __commonJS({
       if (!tokenMatch || !expiresMatch || !urlMatch) return null;
       return { token: tokenMatch[1], expires: expiresMatch[1], url: urlMatch[1] };
     }
-    function runVixsrcCheck(pageUrl, providerName = "vixsrc") {
-      return __async(this, null, function* () {
-        const baseUrl = yield vixsrcBaseUrl();
-        const path = String(pageUrl || "").replace(/^https?:\/\/[^/]+/i, "").replace(/^\/+/, "");
-        if (!/^(movie|tv)\//i.test(path)) return { exists: false, italian: false };
-        try {
-          const apiResponse = yield fetchWithCloudflareCookies2(`${baseUrl}/api/${path}`, { headers: jsonHeaders() }, providerName);
-          if (!apiResponse.ok) return { exists: false, italian: false };
-          const payload = yield apiResponse.json().catch(() => null);
-          const embedUrl = embedUrlFromPayload(payload, baseUrl);
-          if (!embedUrl) {
-            const result2 = { exists: false, italian: false };
-            publishVixsrcCheck2(pageUrl, result2);
-            return result2;
-          }
-          const embedResponse = yield fetchWithCloudflareCookies2(embedUrl, { headers: embedHeaders(embedUrl) }, providerName);
-          if (!embedResponse.ok) return { exists: true, italian: false };
-          const master = masterPlaylistFromEmbedHtml(yield embedResponse.text());
-          if (!master) return { exists: true, italian: false };
-          const embedParams = new URL(embedUrl).searchParams;
-          const playlistParams = [
-            ["token", master.token],
-            ["expires", master.expires],
-            ...embedParams.get("canPlayFHD") ? [["h", "1"]] : [],
-            ...embedParams.get("scz") ? [["scz", "1"]] : [],
-            ["lang", embedParams.get("lang") || "en"]
-          ];
-          const separator = master.url.includes("?") ? "&" : "?";
-          const playlistUrl = `${master.url}${separator}${playlistParams.map(([param, value]) => `${encodeURIComponent(param)}=${encodeURIComponent(value)}`).join("&")}`;
-          const playlistResponse = yield fetchWithCloudflareCookies2(playlistUrl, { headers: playlistHeaders(embedUrl) }, providerName);
-          if (!playlistResponse.ok) return { exists: true, italian: false };
-          const playlistText = yield playlistResponse.text();
-          const result = { exists: true, italian: ITALIAN_AUDIO_PATTERN.test(playlistText) };
-          publishVixsrcCheck2(pageUrl, result);
-          return result;
-        } catch (error) {
-          console.warn(`[VixsrcCheck] verifica fallita per ${pageUrl}: ${error.message}`);
-          return { exists: false, italian: false };
+    async function runVixsrcCheck(pageUrl, providerName = "vixsrc") {
+      const baseUrl = await vixsrcBaseUrl();
+      const path = String(pageUrl || "").replace(/^https?:\/\/[^/]+/i, "").replace(/^\/+/, "");
+      if (!/^(movie|tv)\//i.test(path)) return { exists: false, italian: false };
+      try {
+        const apiResponse = await fetchWithCloudflareCookies2(`${baseUrl}/api/${path}`, { headers: jsonHeaders() }, providerName);
+        if (!apiResponse.ok) return { exists: false, italian: false };
+        const payload = await apiResponse.json().catch(() => null);
+        const embedUrl = embedUrlFromPayload(payload, baseUrl);
+        if (!embedUrl) {
+          const result2 = { exists: false, italian: false };
+          publishVixsrcCheck2(pageUrl, result2);
+          return result2;
         }
-      });
+        const embedResponse = await fetchWithCloudflareCookies2(embedUrl, { headers: embedHeaders(embedUrl) }, providerName);
+        if (!embedResponse.ok) return { exists: true, italian: false };
+        const master = masterPlaylistFromEmbedHtml(await embedResponse.text());
+        if (!master) return { exists: true, italian: false };
+        const embedParams = new URL(embedUrl).searchParams;
+        const playlistParams = [
+          ["token", master.token],
+          ["expires", master.expires],
+          ...embedParams.get("canPlayFHD") ? [["h", "1"]] : [],
+          ...embedParams.get("scz") ? [["scz", "1"]] : [],
+          ["lang", embedParams.get("lang") || "en"]
+        ];
+        const separator = master.url.includes("?") ? "&" : "?";
+        const playlistUrl = `${master.url}${separator}${playlistParams.map(([param, value]) => `${encodeURIComponent(param)}=${encodeURIComponent(value)}`).join("&")}`;
+        const playlistResponse = await fetchWithCloudflareCookies2(playlistUrl, { headers: playlistHeaders(embedUrl) }, providerName);
+        if (!playlistResponse.ok) return { exists: true, italian: false };
+        const playlistText = await playlistResponse.text();
+        const declaredAudioTracks = /#EXT-X-MEDIA:TYPE=AUDIO/i.test(playlistText);
+        const italian = ITALIAN_AUDIO_PATTERN.test(playlistText) || !declaredAudioTracks && await isItalianOriginPage(path);
+        const result = { exists: true, italian };
+        publishVixsrcCheck2(pageUrl, result);
+        return result;
+      } catch (error) {
+        console.warn(`[VixsrcCheck] verifica fallita per ${pageUrl}: ${error.message}`);
+        return { exists: false, italian: false };
+      }
     }
-    function checkVixsrcItalianAudio(pageUrl, providerName = "vixsrc") {
-      return __async(this, null, function* () {
-        const key = vixsrcKey(pageUrl);
-        const cached = cachedVixsrcCheck(key);
-        if (cached) return cached;
-        const existing = checkHandles.get(key);
-        if (existing && existing.expiresAt > Date.now()) {
-          const shared = yield existing.promise;
-          if (shared) return shared;
-          const late = cachedVixsrcCheck(key);
-          if (late) return late;
+    async function checkVixsrcItalianAudio(pageUrl, providerName = "vixsrc") {
+      const key = vixsrcKey(pageUrl);
+      const cached = cachedVixsrcCheck(key);
+      if (cached) return cached;
+      const existing = checkHandles.get(key);
+      if (existing && existing.expiresAt > Date.now()) {
+        const shared = await existing.promise;
+        if (shared) return shared;
+        const late = cachedVixsrcCheck(key);
+        if (late) return late;
+      }
+      const handle = announceVixsrcCheck2(pageUrl);
+      try {
+        return await runVixsrcCheck(pageUrl, providerName);
+      } finally {
+        if (handle && !handle.done) {
+          settleVixsrcCheck2(pageUrl);
         }
-        const handle = announceVixsrcCheck2(pageUrl);
-        try {
-          return yield runVixsrcCheck(pageUrl, providerName);
-        } finally {
-          if (handle && !handle.done) {
-            settleVixsrcCheck2(pageUrl);
-          }
-        }
-      });
+      }
     }
     module2.exports = { checkVixsrcItalianAudio, announceVixsrcCheck: announceVixsrcCheck2, publishVixsrcCheck: publishVixsrcCheck2, settleVixsrcCheck: settleVixsrcCheck2 };
   }
 });
 
 // src/streamingcommunity/index.js
+var { diagnosticLog } = require_diagnostic_logging();
+var { logProviderFailure } = require_provider_errors();
 var STREAMINGCOMMUNITY_CONFIG_URL = "https://raw.githubusercontent.com/realbestia1/domains/refs/heads/main/domains.json";
 var STREAMINGCOMMUNITY_CONFIG_TTL_MS = 10 * 60 * 1e3;
 var STREAMINGCOMMUNITY_DEFAULT_BASE_URL = "https://vixsrc.to";
@@ -2140,45 +2249,43 @@ var streamingCommunityMediaHost = STREAMINGCOMMUNITY_MEDIA_HOST_OVERRIDE || new 
 var streamingCommunityConfigLoaded = Boolean(STREAMINGCOMMUNITY_BASE_URL_OVERRIDE);
 var streamingCommunityConfigLoadedAt = STREAMINGCOMMUNITY_BASE_URL_OVERRIDE ? Date.now() : 0;
 var streamingCommunityConfigPromise = null;
-function loadStreamingCommunityConfig() {
-  return __async(this, null, function* () {
-    if (streamingCommunityConfigLoaded && Date.now() - streamingCommunityConfigLoadedAt < STREAMINGCOMMUNITY_CONFIG_TTL_MS) {
-      return streamingCommunityBaseUrl;
-    }
-    if (streamingCommunityConfigPromise) return yield streamingCommunityConfigPromise;
-    streamingCommunityConfigPromise = (() => __async(null, null, function* () {
-      try {
-        const configUrl = `${STREAMINGCOMMUNITY_CONFIG_URL}?_=${Date.now()}`;
-        const response = yield fetchStreamingCommunity(configUrl, {
-          headers: {
-            Accept: "application/json",
-            "Cache-Control": "no-cache",
-            Pragma: "no-cache"
-          }
-        });
-        if (!response.ok) throw new Error(`Config HTTP ${response.status}`);
-        const configText = yield response.text();
-        const config = JSON.parse(configText.replace(/("[^"\r\n]+")\s*("[^"]+"\s*:)/g, "$1,$2"));
-        const nextBaseUrl = normalizeStreamingCommunityBaseUrl(config == null ? void 0 : config.vixsrc);
-        const nextScUrl = normalizeStreamingCommunityBaseUrl(config == null ? void 0 : config.sc);
-        if (nextBaseUrl) {
-          streamingCommunityBaseUrl = nextBaseUrl;
-          if (!STREAMINGCOMMUNITY_MEDIA_HOST_OVERRIDE) {
-            streamingCommunityMediaHost = new URL(nextBaseUrl).hostname;
-          }
+async function loadStreamingCommunityConfig() {
+  if (streamingCommunityConfigLoaded && Date.now() - streamingCommunityConfigLoadedAt < STREAMINGCOMMUNITY_CONFIG_TTL_MS) {
+    return streamingCommunityBaseUrl;
+  }
+  if (streamingCommunityConfigPromise) return await streamingCommunityConfigPromise;
+  streamingCommunityConfigPromise = (async () => {
+    try {
+      const configUrl = `${STREAMINGCOMMUNITY_CONFIG_URL}?_=${Date.now()}`;
+      const response = await fetchStreamingCommunity(configUrl, {
+        headers: {
+          Accept: "application/json",
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache"
         }
-        if (nextScUrl) SC_BASE = nextScUrl;
-      } catch (error) {
-        console.warn(`[StreamingCommunity] Domains config unavailable, using fallback: ${error.message}`);
-      } finally {
-        streamingCommunityConfigLoaded = true;
-        streamingCommunityConfigLoadedAt = Date.now();
-        streamingCommunityConfigPromise = null;
+      });
+      if (!response.ok) throw new Error(`Config HTTP ${response.status}`);
+      const configText = await response.text();
+      const config = JSON.parse(configText.replace(/("[^"\r\n]+")\s*("[^"]+"\s*:)/g, "$1,$2"));
+      const nextBaseUrl = normalizeStreamingCommunityBaseUrl(config == null ? void 0 : config.vixsrc);
+      const nextScUrl = normalizeStreamingCommunityBaseUrl(config == null ? void 0 : config.sc);
+      if (nextBaseUrl) {
+        streamingCommunityBaseUrl = nextBaseUrl;
+        if (!STREAMINGCOMMUNITY_MEDIA_HOST_OVERRIDE) {
+          streamingCommunityMediaHost = new URL(nextBaseUrl).hostname;
+        }
       }
-      return streamingCommunityBaseUrl;
-    }))();
-    return yield streamingCommunityConfigPromise;
-  });
+      if (nextScUrl) SC_BASE = nextScUrl;
+    } catch (error) {
+      console.warn(`[StreamingCommunity] Domains config unavailable, using fallback: ${error.message}`);
+    } finally {
+      streamingCommunityConfigLoaded = true;
+      streamingCommunityConfigLoadedAt = Date.now();
+      streamingCommunityConfigPromise = null;
+    }
+    return streamingCommunityBaseUrl;
+  })();
+  return await streamingCommunityConfigPromise;
 }
 function getStreamingCommunityBaseUrl() {
   return streamingCommunityBaseUrl;
@@ -2187,6 +2294,7 @@ var { formatStream } = require_formatter();
 require_fetch_helper();
 var { checkQualityFromText } = require_quality_helper();
 var { fetchWithCloudflareCookies, getProviderProxyUrl } = require_cloudflare_provider_fetch();
+var { runDetachedFromProviderSession } = require_provider_session_scope();
 var { announceVixsrcCheck, publishVixsrcCheck, settleVixsrcCheck } = require_vixsrc_audio_check();
 var warmFlareSession = null;
 var isFlareSessionBlocked = null;
@@ -2215,37 +2323,35 @@ function fetchStreamingCommunity(url, options = {}) {
   } catch (_) {
   }
   if (host === "vixsrc.to" || host === "streamingcommunityz.taxi") {
-    return fetchWithCloudflareCookies(url, __spreadProps(__spreadValues({}, options), { forceProviderProxy: true }), "streamingcommunity");
+    return fetchWithCloudflareCookies(url, { ...options, forceProviderProxy: true }, "streamingcommunity");
   }
-  return fetch(url, __spreadProps(__spreadValues({}, options), { forceProviderProxy: true }));
+  return fetch(url, { ...options, forceProviderProxy: true });
 }
 var SC_BASE = "https://streamingcommunityz.taxi";
 var _sitemapCache = null;
 var _sitemapPromise = null;
-function getSitemap() {
-  return __async(this, null, function* () {
-    if (_sitemapCache) return _sitemapCache;
-    if (_sitemapPromise) return yield _sitemapPromise;
-    _sitemapPromise = (() => __async(null, null, function* () {
-      try {
-        const r = yield fetchStreamingCommunity(`${SC_BASE}/titles_it_sitemap.xml`);
-        if (!r.ok) return [];
-        const xml = yield r.text();
-        const entries = [];
-        const re = /titles\/(\d+)-([^<]+)/g;
-        let m;
-        while (m = re.exec(xml)) entries.push({ id: Number(m[1]), slug: m[2] });
-        _sitemapCache = entries;
-        return entries;
-      } catch (e) {
-        console.warn("[StreamingCommunity] Sitemap fetch error:", e.message);
-        return [];
-      } finally {
-        _sitemapPromise = null;
-      }
-    }))();
-    return yield _sitemapPromise;
-  });
+async function getSitemap() {
+  if (_sitemapCache) return _sitemapCache;
+  if (_sitemapPromise) return await _sitemapPromise;
+  _sitemapPromise = (async () => {
+    try {
+      const r = await fetchStreamingCommunity(`${SC_BASE}/titles_it_sitemap.xml`);
+      if (!r.ok) return [];
+      const xml = await r.text();
+      const entries = [];
+      const re = /titles\/(\d+)-([^<]+)/g;
+      let m;
+      while (m = re.exec(xml)) entries.push({ id: Number(m[1]), slug: m[2] });
+      _sitemapCache = entries;
+      return entries;
+    } catch (e) {
+      console.warn("[StreamingCommunity] Sitemap fetch error:", e.message);
+      return [];
+    } finally {
+      _sitemapPromise = null;
+    }
+  })();
+  return await _sitemapPromise;
 }
 function findInSitemap(entries, name) {
   if (!name) return [];
@@ -2260,127 +2366,127 @@ function findInSitemap(entries, name) {
   }
   return [...exact, ...prefix];
 }
-function scrapeTitle(id, slug, season = null) {
-  return __async(this, null, function* () {
-    var _a, _b;
-    try {
-      const baseSlug = slug ? String(slug).replace(/\/season-\d+.*$/i, "") : "";
-      let url = `${SC_BASE}/it/titles/${id}${baseSlug ? "-" + baseSlug : ""}`;
-      if (season) url += `/season-${season}`;
-      const r = yield fetchStreamingCommunity(url);
-      if (!r.ok) return null;
-      const html = yield r.text();
-      const m = html.match(/data-page="({.+?})"/);
-      if (!m) return null;
-      const page = JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, "&"));
-      const t = (_a = page == null ? void 0 : page.props) == null ? void 0 : _a.title;
-      if (!t) return null;
-      const loadedSeason = (_b = page == null ? void 0 : page.props) == null ? void 0 : _b.loadedSeason;
-      const ep = loadedSeason == null ? void 0 : loadedSeason.episodes;
-      return {
-        id: t.id,
-        slug: t.slug,
-        name: t.name,
-        type: t.type,
-        tmdb_id: t.tmdb_id,
-        imdb_id: t.imdb_id,
-        coming_soon: Boolean(t.coming_soon),
-        seasonNumber: (loadedSeason == null ? void 0 : loadedSeason.number) || null,
-        episodes: (ep == null ? void 0 : ep.map((e) => ({ id: e.id, number: e.number, name: e.name }))) || null
-      };
-    } catch (e) {
-      return null;
-    }
-  });
+async function scrapeTitle(id, slug, season = null) {
+  var _a, _b;
+  try {
+    const baseSlug = slug ? String(slug).replace(/\/season-\d+.*$/i, "") : "";
+    let url = `${SC_BASE}/it/titles/${id}${baseSlug ? "-" + baseSlug : ""}`;
+    if (season) url += `/season-${season}`;
+    const r = await fetchStreamingCommunity(url);
+    if (!r.ok) return null;
+    const html = await r.text();
+    const m = html.match(/data-page="({.+?})"/);
+    if (!m) return null;
+    const page = JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, "&"));
+    const t = (_a = page == null ? void 0 : page.props) == null ? void 0 : _a.title;
+    if (!t) return null;
+    const loadedSeason = (_b = page == null ? void 0 : page.props) == null ? void 0 : _b.loadedSeason;
+    const ep = loadedSeason == null ? void 0 : loadedSeason.episodes;
+    return {
+      id: t.id,
+      slug: t.slug,
+      name: t.name,
+      type: t.type,
+      tmdb_id: t.tmdb_id,
+      imdb_id: t.imdb_id,
+      coming_soon: Boolean(t.coming_soon),
+      seasonNumber: (loadedSeason == null ? void 0 : loadedSeason.number) || null,
+      episodes: (ep == null ? void 0 : ep.map((e) => ({ id: e.id, number: e.number, name: e.name }))) || null
+    };
+  } catch (e) {
+    logProviderFailure("streamingcommunity", "scz.title", e);
+    return null;
+  }
 }
-function getCamEmbed(titleId, episodeId) {
-  return __async(this, null, function* () {
-    try {
-      let url = `${SC_BASE}/it/iframe/${titleId}`;
-      if (episodeId) url += `?episode_id=${episodeId}`;
-      const r = yield fetchStreamingCommunity(url);
-      if (!r.ok) return null;
-      const m = (yield r.text()).match(/src="(https:\/\/vixcloud\.co\/embed\/[^"]+)"/);
-      return m ? m[1].replace(/&amp;/g, "&") : null;
-    } catch (e) {
-      return null;
-    }
-  });
+async function getCamEmbed(titleId, episodeId) {
+  try {
+    let url = `${SC_BASE}/it/iframe/${titleId}`;
+    if (episodeId) url += `?episode_id=${episodeId}`;
+    const r = await fetchStreamingCommunity(url);
+    if (!r.ok) return null;
+    const m = (await r.text()).match(/src="(https:\/\/vixcloud\.co\/embed\/[^"]+)"/);
+    return m ? m[1].replace(/&amp;/g, "&") : null;
+  } catch (e) {
+    logProviderFailure("streamingcommunity", "scz.iframe", e);
+    return null;
+  }
 }
-function resolveSczEmbed(metadata, normalizedType, season, episode, rawId) {
-  return __async(this, null, function* () {
-    try {
-      const entries = yield getSitemap();
-      if (!entries.length) return null;
-      const inputIsTmdb = /^\d+$/.test(String(rawId).replace(/^tmdb:/i, ""));
-      const targetTmdb = (metadata == null ? void 0 : metadata.id) || (inputIsTmdb ? String(rawId).replace(/^tmdb:/i, "") : null);
-      const targetImdb = (metadata == null ? void 0 : metadata.imdb_id) || (!inputIsTmdb ? String(rawId) : null);
-      const titlesToTry = [targetImdb, metadata == null ? void 0 : metadata.title, metadata == null ? void 0 : metadata.name, metadata == null ? void 0 : metadata.original_title, metadata == null ? void 0 : metadata.original_name].filter(Boolean);
-      const candidateMatches = [];
-      for (const t of titlesToTry) {
-        for (const m of findInSitemap(entries, t)) {
-          if (!candidateMatches.some((c) => c.id === m.id)) candidateMatches.push(m);
-        }
+async function resolveSczEmbed(metadata, normalizedType, season, episode, rawId) {
+  try {
+    const entries = await getSitemap();
+    if (!entries.length) return null;
+    const inputIsTmdb = /^\d+$/.test(String(rawId).replace(/^tmdb:/i, ""));
+    const targetTmdb = (metadata == null ? void 0 : metadata.id) || (inputIsTmdb ? String(rawId).replace(/^tmdb:/i, "") : null);
+    const targetImdb = (metadata == null ? void 0 : metadata.imdb_id) || (!inputIsTmdb ? String(rawId) : null);
+    const titlesToTry = [targetImdb, metadata == null ? void 0 : metadata.title, metadata == null ? void 0 : metadata.name, metadata == null ? void 0 : metadata.original_title, metadata == null ? void 0 : metadata.original_name].filter(Boolean);
+    const candidateMatches = [];
+    for (const t of titlesToTry) {
+      for (const m of findInSitemap(entries, t)) {
+        if (!candidateMatches.some((c) => c.id === m.id)) candidateMatches.push(m);
       }
-      if (!candidateMatches.length) {
-        const searchResults = yield Promise.all(titlesToTry.map((t) => __async(null, null, function* () {
-          var _a;
-          try {
-            const r = yield fetchStreamingCommunity(`${SC_BASE}/it/search?q=${encodeURIComponent(t)}`);
-            if (!r.ok) return null;
-            const html = yield r.text();
-            const m = html.match(/data-page="({.+?})"/);
-            if (!m) return null;
-            const page = JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, "&"));
-            return ((_a = page.props) == null ? void 0 : _a.titles) || [];
-          } catch (_) {
-            return null;
-          }
-        })));
-        for (const titles of searchResults) {
-          for (const item of titles || []) {
-            if (!candidateMatches.some((c) => c.id === item.id)) {
-              candidateMatches.push({ id: item.id, slug: item.slug });
-            }
-          }
-        }
-      }
-      let foundTitle = null;
-      const maxScrapes = Math.min(candidateMatches.length, 8);
-      for (let offset = 0; offset < maxScrapes && !foundTitle; offset += 3) {
-        const batch = candidateMatches.slice(offset, offset + 3);
-        const scrapedBatch = yield Promise.all(batch.map(
-          (m) => scrapeTitle(m.id, m.slug, normalizedType === "tv" ? season : null).catch(() => null)
-        ));
-        for (const scraped of scrapedBatch) {
-          if (!scraped) continue;
-          const matchTmdb = targetTmdb && scraped.tmdb_id !== null && String(scraped.tmdb_id) === String(targetTmdb);
-          const matchImdb = targetImdb && scraped.imdb_id && String(scraped.imdb_id).toLowerCase() === String(targetImdb).toLowerCase();
-          if (matchTmdb || matchImdb) {
-            foundTitle = scraped;
-            break;
-          }
-        }
-      }
-      if (!foundTitle || foundTitle.coming_soon) return null;
-      let episodeId = null;
-      if (normalizedType === "tv") {
-        const targetSeason = Number(season) || 1;
-        if (foundTitle.seasonNumber !== targetSeason || !foundTitle.episodes) return null;
-        const epNum = Number(episode) || 1;
-        const epObj = foundTitle.episodes.find((e) => e.number === epNum);
-        if (!epObj) return null;
-        episodeId = epObj.id;
-      }
-      const iframeUrl = `${SC_BASE}/it/iframe/${foundTitle.id}${episodeId ? "?episode_id=" + episodeId : ""}`;
-      const embedUrl = yield getCamEmbed(foundTitle.id, episodeId);
-      if (!embedUrl) return null;
-      return { embedUrl, iframeUrl };
-    } catch (e) {
-      console.error("[StreamingCommunity] SCZ embed resolve error:", e.message);
-      return null;
     }
-  });
+    if (!candidateMatches.length) {
+      const searchResults = await Promise.all(titlesToTry.map(async (t) => {
+        var _a;
+        try {
+          const r = await fetchStreamingCommunity(`${SC_BASE}/it/search?q=${encodeURIComponent(t)}`);
+          if (!r.ok) return null;
+          const html = await r.text();
+          const m = html.match(/data-page="({.+?})"/);
+          if (!m) return null;
+          const page = JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, "&"));
+          return ((_a = page.props) == null ? void 0 : _a.titles) || [];
+        } catch (error) {
+          logProviderFailure("streamingcommunity", "scz.search", error);
+          return null;
+        }
+      }));
+      for (const titles of searchResults) {
+        for (const item of titles || []) {
+          if (!candidateMatches.some((c) => c.id === item.id)) {
+            candidateMatches.push({ id: item.id, slug: item.slug });
+          }
+        }
+      }
+    }
+    let foundTitle = null;
+    const maxScrapes = Math.min(candidateMatches.length, 8);
+    for (let offset = 0; offset < maxScrapes && !foundTitle; offset += 3) {
+      const batch = candidateMatches.slice(offset, offset + 3);
+      const scrapedBatch = await Promise.all(batch.map(
+        (m) => scrapeTitle(m.id, m.slug, normalizedType === "tv" ? season : null).catch((error) => {
+          logProviderFailure("streamingcommunity", "scz.candidate", error);
+          return null;
+        })
+      ));
+      for (const scraped of scrapedBatch) {
+        if (!scraped) continue;
+        const matchTmdb = targetTmdb && scraped.tmdb_id !== null && String(scraped.tmdb_id) === String(targetTmdb);
+        const matchImdb = targetImdb && scraped.imdb_id && String(scraped.imdb_id).toLowerCase() === String(targetImdb).toLowerCase();
+        if (matchTmdb || matchImdb) {
+          foundTitle = scraped;
+          break;
+        }
+      }
+    }
+    if (!foundTitle || foundTitle.coming_soon) return null;
+    let episodeId = null;
+    if (normalizedType === "tv") {
+      const targetSeason = Number(season) || 1;
+      if (foundTitle.seasonNumber !== targetSeason || !foundTitle.episodes) return null;
+      const epNum = Number(episode) || 1;
+      const epObj = foundTitle.episodes.find((e) => e.number === epNum);
+      if (!epObj) return null;
+      episodeId = epObj.id;
+    }
+    const iframeUrl = `${SC_BASE}/it/iframe/${foundTitle.id}${episodeId ? "?episode_id=" + episodeId : ""}`;
+    const embedUrl = await getCamEmbed(foundTitle.id, episodeId);
+    if (!embedUrl) return null;
+    return { embedUrl, iframeUrl };
+  } catch (e) {
+    console.error("[StreamingCommunity] SCZ embed resolve error:", e.message);
+    return null;
+  }
 }
 var TMDB_API_KEY = "68e094699525b18a70bab2f86b1fa706";
 var USER_AGENT = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
@@ -2493,298 +2599,317 @@ function getQualityFromName(qualityStr) {
   }
   return "Unknown";
 }
-function getTmdbId(imdbId, type) {
-  return __async(this, null, function* () {
+async function getTmdbId(imdbId, type) {
+  const normalizedType = String(type).toLowerCase();
+  const findUrl = `https://api.themoviedb.org/3/find/${imdbId}?api_key=${TMDB_API_KEY}&external_source=imdb_id`;
+  try {
+    const response = await fetchStreamingCommunity(findUrl);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data) return null;
+    if (normalizedType === "movie" && data.movie_results && data.movie_results.length > 0) {
+      return data.movie_results[0].id.toString();
+    } else if (normalizedType === "tv" && data.tv_results && data.tv_results.length > 0) {
+      return data.tv_results[0].id.toString();
+    }
+    return null;
+  } catch (e) {
+    console.error("[StreamingCommunity] Conversion error:", e);
+    return null;
+  }
+}
+async function getMetadata(id, type) {
+  try {
     const normalizedType = String(type).toLowerCase();
-    const findUrl = `https://api.themoviedb.org/3/find/${imdbId}?api_key=${TMDB_API_KEY}&external_source=imdb_id`;
-    try {
-      const response = yield fetchStreamingCommunity(findUrl);
-      if (!response.ok) return null;
-      const data = yield response.json();
-      if (!data) return null;
-      if (normalizedType === "movie" && data.movie_results && data.movie_results.length > 0) {
-        return data.movie_results[0].id.toString();
-      } else if (normalizedType === "tv" && data.tv_results && data.tv_results.length > 0) {
-        return data.tv_results[0].id.toString();
-      }
-      return null;
-    } catch (e) {
-      console.error("[StreamingCommunity] Conversion error:", e);
-      return null;
-    }
-  });
-}
-function getMetadata(id, type) {
-  return __async(this, null, function* () {
-    try {
-      const normalizedType = String(type).toLowerCase();
-      let url;
-      if (String(id).startsWith("tt")) {
-        url = `https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_API_KEY}&external_source=imdb_id&language=it-IT`;
-      } else {
-        const endpoint = normalizedType === "movie" ? "movie" : "tv";
-        url = `https://api.themoviedb.org/3/${endpoint}/${id}?api_key=${TMDB_API_KEY}&language=it-IT`;
-      }
-      const response = yield fetchStreamingCommunity(url);
-      if (!response.ok) return null;
-      const data = yield response.json();
-      if (String(id).startsWith("tt")) {
-        const results = normalizedType === "movie" ? data.movie_results : data.tv_results;
-        if (results && results.length > 0) return results[0];
-      } else {
-        return data;
-      }
-      return null;
-    } catch (e) {
-      console.error("[StreamingCommunity] Metadata error:", e);
-      return null;
-    }
-  });
-}
-function getStreams(id, type, season, episode, providerContext = null) {
-  return __async(this, null, function* () {
-    const scStartedAt = Date.now();
-    const scPhases = { setupMs: 0, metadataMs: 0, apiMs: 0, embedMs: 0 };
-    let tSetup = Date.now();
-    yield loadStreamingCommunityConfig();
-    const requestedType = String(type).toLowerCase();
-    const normalizedType = requestedType === "series" ? "tv" : requestedType;
-    const baseUrl = getStreamingCommunityBaseUrl();
-    const commonHeaders = getCommonHeaders();
-    let tmdbId = id.toString();
-    let resolvedSeason = season;
-    const contextTmdbId = providerContext && /^\d+$/.test(String(providerContext.tmdbId || "")) ? String(providerContext.tmdbId) : null;
-    if (contextTmdbId) {
-      tmdbId = contextTmdbId;
-    } else if (tmdbId.startsWith("tmdb:")) {
-      tmdbId = tmdbId.replace("tmdb:", "");
-    } else if (tmdbId.startsWith("tt")) {
-      const convertedId = yield getTmdbId(tmdbId, normalizedType);
-      if (convertedId) {
-        console.log(`[StreamingCommunity] Converted ${id} to TMDB ID: ${convertedId}`);
-        tmdbId = convertedId;
-      } else {
-        console.warn(`[StreamingCommunity] Could not convert IMDb ID ${id} to TMDB ID.`);
-      }
-    }
-    let metadata = null;
-    try {
-      const tMeta = Date.now();
-      metadata = yield getMetadata(tmdbId, type);
-      scPhases.metadataMs += Date.now() - tMeta;
-    } catch (e) {
-      console.error("[StreamingCommunity] Error fetching metadata:", e);
-    }
-    scPhases.setupMs += Date.now() - tSetup - scPhases.metadataMs;
-    const title = metadata && (metadata.title || metadata.name || metadata.original_title || metadata.original_name) ? metadata.title || metadata.name || metadata.original_title || metadata.original_name : normalizedType === "movie" ? "Film Sconosciuto" : "Serie TV";
-    const displayName = normalizedType === "movie" ? title : `${title} ${resolvedSeason}x${episode}`;
-    const finalDisplayName = displayName;
     let url;
-    let apiUrl;
-    if (normalizedType === "movie") {
-      url = `${baseUrl}/movie/${tmdbId}`;
-      apiUrl = `${baseUrl}/api/movie/${tmdbId}`;
-    } else if (normalizedType === "tv") {
-      url = `${baseUrl}/tv/${tmdbId}/${resolvedSeason}/${episode}`;
-      apiUrl = `${baseUrl}/api/tv/${tmdbId}/${resolvedSeason}/${episode}`;
+    if (String(id).startsWith("tt")) {
+      url = `https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_API_KEY}&external_source=imdb_id&language=it-IT`;
     } else {
-      return [];
+      const endpoint = normalizedType === "movie" ? "movie" : "tv";
+      url = `https://api.themoviedb.org/3/${endpoint}/${id}?api_key=${TMDB_API_KEY}&language=it-IT`;
     }
-    let scProxy = "";
-    try {
-      scProxy = new URL(getProviderProxyUrl(apiUrl, "streamingcommunity")).hostname;
-    } catch (e) {
+    const response = await fetchStreamingCommunity(url);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (String(id).startsWith("tt")) {
+      const results = normalizedType === "movie" ? data.movie_results : data.tv_results;
+      if (results && results.length > 0) return results[0];
+    } else {
+      return data;
     }
-    announceVixsrcCheck(url);
-    if (typeof isFlareSessionBlocked === "function" && isFlareSessionBlocked("vixsrc")) {
-      if (Date.now() - blockedLogAt > 5 * 60 * 1e3) {
-        blockedLogAt = Date.now();
-        console.warn("[StreamingCommunity] IP bloccato da Cloudflare per Vixsrc: provider in pausa (controlla il proxy nel pannello)");
+    return null;
+  } catch (e) {
+    console.error("[StreamingCommunity] Metadata error:", e);
+    return null;
+  }
+}
+async function getStreams(id, type, season, episode, providerContext = null) {
+  var _a, _b, _c, _d;
+  const scStartedAt = Date.now();
+  const scPhases = { setupMs: 0, metadataMs: 0, apiMs: 0, embedMs: 0 };
+  let tSetup = Date.now();
+  await loadStreamingCommunityConfig();
+  const requestedType = String(type).toLowerCase();
+  const normalizedType = requestedType === "series" ? "tv" : requestedType;
+  const baseUrl = getStreamingCommunityBaseUrl();
+  const commonHeaders = getCommonHeaders();
+  let tmdbId = id.toString();
+  let resolvedSeason = season;
+  const contextTmdbId = providerContext && /^\d+$/.test(String(providerContext.tmdbId || "")) ? String(providerContext.tmdbId) : null;
+  if (contextTmdbId) {
+    tmdbId = contextTmdbId;
+  } else if (tmdbId.startsWith("tmdb:")) {
+    tmdbId = tmdbId.replace("tmdb:", "");
+  } else if (tmdbId.startsWith("tt")) {
+    const convertedId = await getTmdbId(tmdbId, normalizedType);
+    if (convertedId) {
+      console.log(`[StreamingCommunity] Converted ${id} to TMDB ID: ${convertedId}`);
+      tmdbId = convertedId;
+    } else {
+      console.warn(`[StreamingCommunity] Could not convert IMDb ID ${id} to TMDB ID.`);
+    }
+  }
+  let metadata = null;
+  try {
+    const tMeta = Date.now();
+    metadata = await getMetadata(tmdbId, type);
+    scPhases.metadataMs += Date.now() - tMeta;
+  } catch (e) {
+    console.error("[StreamingCommunity] Error fetching metadata:", e);
+  }
+  scPhases.setupMs += Date.now() - tSetup - scPhases.metadataMs;
+  const title = metadata && (metadata.title || metadata.name || metadata.original_title || metadata.original_name) ? metadata.title || metadata.name || metadata.original_title || metadata.original_name : normalizedType === "movie" ? "Film Sconosciuto" : "Serie TV";
+  const isItalianOrigin = String((metadata == null ? void 0 : metadata.original_language) || "").toLowerCase() === "it";
+  const displayName = normalizedType === "movie" ? title : `${title} ${resolvedSeason}x${episode}`;
+  const finalDisplayName = displayName;
+  let url;
+  let apiUrl;
+  if (normalizedType === "movie") {
+    url = `${baseUrl}/movie/${tmdbId}`;
+    apiUrl = `${baseUrl}/api/movie/${tmdbId}`;
+  } else if (normalizedType === "tv") {
+    url = `${baseUrl}/tv/${tmdbId}/${resolvedSeason}/${episode}`;
+    apiUrl = `${baseUrl}/api/tv/${tmdbId}/${resolvedSeason}/${episode}`;
+  } else {
+    return [];
+  }
+  let scProxy = "";
+  try {
+    scProxy = new URL(getProviderProxyUrl(apiUrl, "streamingcommunity")).hostname;
+  } catch (e) {
+  }
+  announceVixsrcCheck(url);
+  if (typeof isFlareSessionBlocked === "function" && isFlareSessionBlocked("vixsrc")) {
+    (_a = providerContext == null ? void 0 : providerContext.recordFailure) == null ? void 0 : _a.call(providerContext);
+    if (Date.now() - blockedLogAt > 5 * 60 * 1e3) {
+      blockedLogAt = Date.now();
+      console.warn("[StreamingCommunity] IP bloccato da Cloudflare per Vixsrc: provider in pausa (controlla il proxy nel pannello)");
+    }
+    return [];
+  }
+  const warming = typeof warmFlareSession === "function" ? runDetachedFromProviderSession(() => warmFlareSession("vixsrc", baseUrl, {
+    proxyUrl: getProviderProxyUrl(baseUrl, "vixsrc") || getProviderProxyUrl(baseUrl, "streamingcommunity")
+  })) : null;
+  if (typeof isFlareSessionReady === "function" && !isFlareSessionReady("vixsrc")) {
+    (_b = providerContext == null ? void 0 : providerContext.recordFailure) == null ? void 0 : _b.call(providerContext);
+    logProviderFailure(
+      "streamingcommunity",
+      "vixsrc.session",
+      { name: "CloudflareSessionError", code: "CF_SESSION_NOT_READY", message: "FlareSolverr session not ready; warming in background" }
+    );
+    if (warming) {
+      warming.then(() => console.log("[StreamingCommunity] Sessione FlareSolverr pronta!")).catch((e) => console.error("[StreamingCommunity] Warm-up sessione fallito:", e.message));
+    }
+    return [];
+  }
+  if (typeof isFlareSessionBusy === "function" && isFlareSessionBusy("vixsrc")) {
+    (_c = providerContext == null ? void 0 : providerContext.recordFailure) == null ? void 0 : _c.call(providerContext);
+    logProviderFailure(
+      "streamingcommunity",
+      "vixsrc.session",
+      { name: "CloudflareSessionError", code: "CF_SESSION_BUSY", message: "Vixsrc Cloudflare challenge is in progress" }
+    );
+    return [];
+  }
+  try {
+    const proxySocks = STREAMINGCOMMUNITY_PROXY || typeof process !== "undefined" && process.env.SOCKS5_PROXY || "";
+    const useProxyFetch = proxySocks && typeof ProxyAgent === "function";
+    let proxyAgent = null;
+    if (useProxyFetch) {
+      try {
+        proxyAgent = new ProxyAgent(proxySocks);
+        console.log(`[StreamingCommunity] Using SOCKS5 proxy for fetches`);
+      } catch (e) {
+        console.warn(`[StreamingCommunity] Failed to create proxy agent: ${e.message}`);
       }
-      return [];
     }
-    const warming = typeof warmFlareSession === "function" ? warmFlareSession("vixsrc", baseUrl, {
-      proxyUrl: getProviderProxyUrl(baseUrl, "vixsrc") || getProviderProxyUrl(baseUrl, "streamingcommunity")
-    }) : null;
-    if (typeof isFlareSessionReady === "function" && !isFlareSessionReady("vixsrc")) {
-      console.log("[StreamingCommunity] Sessione FlareSolverr non pronta, salto provider e riscaldo in background");
-      if (warming) {
-        warming.then(() => console.log("[StreamingCommunity] Sessione FlareSolverr pronta!")).catch((e) => console.error("[StreamingCommunity] Warm-up sessione fallito:", e.message));
-      }
-      return [];
-    }
-    if (typeof isFlareSessionBusy === "function" && isFlareSessionBusy("vixsrc")) {
-      console.log("[StreamingCommunity] Challenge in corso per Vixsrc, salto provider");
-      return [];
-    }
-    try {
-      const proxySocks = STREAMINGCOMMUNITY_PROXY || typeof process !== "undefined" && process.env.SOCKS5_PROXY || "";
-      const useProxyFetch = proxySocks && typeof ProxyAgent === "function";
-      let proxyAgent = null;
-      if (useProxyFetch) {
-        try {
-          proxyAgent = new ProxyAgent(proxySocks);
-          console.log(`[StreamingCommunity] Using SOCKS5 proxy for fetches`);
-        } catch (e) {
-          console.warn(`[StreamingCommunity] Failed to create proxy agent: ${e.message}`);
-        }
-      }
-      console.log(`[StreamingCommunity] Fetching API: ${apiUrl}`);
-      const tApi = Date.now();
-      const vixPromise = fetchWithCloudflareCookies(apiUrl, { headers: commonHeaders, dispatcher: proxyAgent || void 0 }, "streamingcommunity").then((r) => r.ok ? r.json() : null).then((payload) => {
-        const embedUrl = extractEmbedSrcFromApiPayload(payload);
-        return embedUrl ? { embedUrl, iframeUrl: url } : null;
-      }).catch(() => null);
-      const sczPromise = resolveSczEmbed(metadata, normalizedType, resolvedSeason, episode, id).catch(() => null);
-      const processEmbedSource = (item) => __async(null, null, function* () {
-        const embedUrl = rewriteStreamingCommunityHost(item.embedUrl);
-        const isSczSource = item.source === "scz";
-        let embedHtml;
-        let embedCookies = "";
-        try {
-          console.log(`[StreamingCommunity] Fetching embed (${item.source}): ${embedUrl}`);
-          const embedResponse = yield fetchWithCloudflareCookies(embedUrl, {
-            headers: getEmbedHeaders(embedUrl),
-            dispatcher: proxyAgent || void 0
-          });
-          if (!embedResponse.ok) {
-            console.error(`[StreamingCommunity] Failed to fetch embed (${item.source}): ${embedResponse.status}`);
-            return null;
-          }
-          embedCookies = getResponseCookies(embedResponse);
-          embedHtml = yield embedResponse.text();
-        } catch (e) {
-          console.error(`[StreamingCommunity] Failed to fetch embed (${item.source}): ${e.message}`);
+    console.log(`[StreamingCommunity] Fetching API: ${apiUrl}`);
+    const tApi = Date.now();
+    const vixPromise = fetchWithCloudflareCookies(apiUrl, { headers: commonHeaders, dispatcher: proxyAgent || void 0 }, "streamingcommunity").then((r) => r.ok ? r.json() : null).then((payload) => {
+      const embedUrl = extractEmbedSrcFromApiPayload(payload);
+      return embedUrl ? { embedUrl, iframeUrl: url } : null;
+    }).catch((error) => {
+      var _a2;
+      (_a2 = providerContext == null ? void 0 : providerContext.recordFailure) == null ? void 0 : _a2.call(providerContext);
+      logProviderFailure("streamingcommunity", "vixsrc.api", error);
+      return null;
+    });
+    const sczPromise = resolveSczEmbed(metadata, normalizedType, resolvedSeason, episode, id).catch((error) => {
+      logProviderFailure("streamingcommunity", "scz.resolve", error);
+      return null;
+    });
+    (_d = providerContext == null ? void 0 : providerContext.trackBackgroundTask) == null ? void 0 : _d.call(providerContext, sczPromise);
+    const processEmbedSource = async (item) => {
+      const embedUrl = rewriteStreamingCommunityHost(item.embedUrl);
+      const isSczSource = item.source === "scz";
+      let embedHtml;
+      let embedCookies = "";
+      try {
+        console.log(`[StreamingCommunity] Fetching embed (${item.source}): ${embedUrl}`);
+        const embedResponse = await fetchWithCloudflareCookies(embedUrl, {
+          headers: getEmbedHeaders(embedUrl),
+          dispatcher: proxyAgent || void 0
+        });
+        if (!embedResponse.ok) {
+          console.error(`[StreamingCommunity] Failed to fetch embed (${item.source}): ${embedResponse.status}`);
           return null;
         }
-        if (!embedHtml) return null;
-        const masterPlaylist = extractMasterPlaylistFromEmbedHtml(embedHtml);
-        if (!masterPlaylist) {
-          console.log("[StreamingCommunity] Could not find playlist info in HTML");
-          return null;
-        }
-        const embedParams = new URL(embedUrl).searchParams;
-        const playlistParams = [
-          ["token", masterPlaylist.token],
-          ["expires", masterPlaylist.expires],
-          ...embedParams.get("canPlayFHD") ? [["h", "1"]] : [],
-          ...embedParams.get("scz") ? [["scz", "1"]] : [],
-          ["lang", embedParams.get("lang") || "en"]
-        ];
-        const playlistSeparator = masterPlaylist.url.includes("?") ? "&" : "?";
-        const streamUrl = rewriteStreamingCommunityHost(
-          `${masterPlaylist.url}${playlistSeparator}${playlistParams.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&")}`
-        );
-        const cleanEmbedUrl = embedUrl;
-        const cleanIframeUrl = rewriteStreamingCommunityHost(item.iframeUrl || cleanEmbedUrl);
-        const streamHeaders = getPlaylistHeaders(embedUrl);
-        if (embedCookies) streamHeaders.Cookie = embedCookies;
-        console.log(`[StreamingCommunity] Final stream URL (${item.source}): ${streamUrl}`);
-        let quality = "1080p";
-        let hasItalianAudio = false;
-        let playlistFetched = false;
-        try {
-          const playlistResponse = yield fetchWithCloudflareCookies(streamUrl, {
-            headers: streamHeaders,
-            dispatcher: proxyAgent || void 0
-          });
-          if (!playlistResponse.ok) {
-            console.warn(`[StreamingCommunity] Playlist pre-check failed (${item.source}): ${playlistResponse.status}, stream not playable`);
-            return null;
-          }
-          playlistFetched = true;
-          const playlistText = yield playlistResponse.text();
-          if (playlistText) {
-            hasItalianAudio = /#EXT-X-MEDIA:TYPE=AUDIO.*(?:LANGUAGE="it"|LANGUAGE="ita"|NAME="Italian"|NAME="Ita")/i.test(playlistText);
-            const detected = checkQualityFromText(playlistText);
-            if (detected) quality = detected;
-          }
-          if (item.source === "vixsrc") {
-            publishVixsrcCheck(url, { exists: true, italian: hasItalianAudio });
-          }
-        } catch (e) {
-          console.warn(`[StreamingCommunity] Playlist pre-check failed (${item.source}), continuing:`, e);
-          return null;
-        }
-        const normalizedQuality = getQualityFromName(quality);
-        const isItalianAudio = isSczSource || playlistFetched && hasItalianAudio;
-        const resultLanguage = isItalianAudio ? "Italian" : "";
-        const isStremioAddon = Boolean(providerContext == null ? void 0 : providerContext.proxyUrl);
-        const targetProxySource = isStremioAddon ? cleanIframeUrl : cleanEmbedUrl;
-        const result = {
-          name: `StreamingCommunity`,
-          title: finalDisplayName,
-          url: streamUrl,
-          easyProxySourceUrl: targetProxySource,
-          quality: normalizedQuality,
-          type: "direct",
+        embedCookies = getResponseCookies(embedResponse);
+        embedHtml = await embedResponse.text();
+      } catch (e) {
+        console.error(`[StreamingCommunity] Failed to fetch embed (${item.source}): ${e.message}`);
+        return null;
+      }
+      if (!embedHtml) return null;
+      const masterPlaylist = extractMasterPlaylistFromEmbedHtml(embedHtml);
+      if (!masterPlaylist) {
+        console.log("[StreamingCommunity] Could not find playlist info in HTML");
+        return null;
+      }
+      const embedParams = new URL(embedUrl).searchParams;
+      const playlistParams = [
+        ["token", masterPlaylist.token],
+        ["expires", masterPlaylist.expires],
+        ...embedParams.get("canPlayFHD") ? [["h", "1"]] : [],
+        ...embedParams.get("scz") ? [["scz", "1"]] : [],
+        ["lang", embedParams.get("lang") || "en"]
+      ];
+      const playlistSeparator = masterPlaylist.url.includes("?") ? "&" : "?";
+      const streamUrl = rewriteStreamingCommunityHost(
+        `${masterPlaylist.url}${playlistSeparator}${playlistParams.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&")}`
+      );
+      const cleanEmbedUrl = embedUrl;
+      const cleanIframeUrl = rewriteStreamingCommunityHost(item.iframeUrl || cleanEmbedUrl);
+      const streamHeaders = getPlaylistHeaders(embedUrl);
+      if (embedCookies) streamHeaders.Cookie = embedCookies;
+      console.log(`[StreamingCommunity] Final stream URL (${item.source}): ${streamUrl}`);
+      let quality = "1080p";
+      let hasItalianAudio = false;
+      let playlistFetched = false;
+      let declaredAudioTracks = false;
+      try {
+        const playlistResponse = await fetchWithCloudflareCookies(streamUrl, {
           headers: streamHeaders,
-          behaviorHints: {
-            notWebReady: false
-          },
-          language: resultLanguage
-        };
-        const formatted = formatStream(result, "StreamingCommunity");
-        return formatted ? { stream: formatted, isItalianAudio } : null;
-      });
-      const streams = [];
-      let sourcesResolved = 0;
-      const vixRes = yield vixPromise;
-      scPhases.apiMs += Date.now() - tApi;
-      const vixEmbedUrl = (vixRes == null ? void 0 : vixRes.embedUrl) ? rewriteStreamingCommunityHost(vixRes.embedUrl) : "";
-      const tEmbed = Date.now();
-      let vixItalian = false;
-      if (vixEmbedUrl) {
+          dispatcher: proxyAgent || void 0
+        });
+        if (!playlistResponse.ok) {
+          console.warn(`[StreamingCommunity] Playlist pre-check failed (${item.source}): ${playlistResponse.status}, stream not playable`);
+          return null;
+        }
+        playlistFetched = true;
+        const playlistText = await playlistResponse.text();
+        if (playlistText) {
+          declaredAudioTracks = /#EXT-X-MEDIA:TYPE=AUDIO/i.test(playlistText);
+          hasItalianAudio = /#EXT-X-MEDIA:TYPE=AUDIO.*(?:LANGUAGE="it"|LANGUAGE="ita"|NAME="Italian"|NAME="Ita")/i.test(playlistText);
+          const detected = checkQualityFromText(playlistText);
+          if (detected) quality = detected;
+        }
+      } catch (e) {
+        console.warn(`[StreamingCommunity] Playlist pre-check failed (${item.source}), continuing:`, e);
+        return null;
+      }
+      const normalizedQuality = getQualityFromName(quality);
+      const isItalianOriginVixsrc = item.source === "vixsrc" && isItalianOrigin && !declaredAudioTracks;
+      if (item.source === "vixsrc") {
+        publishVixsrcCheck(url, { exists: true, italian: hasItalianAudio || isItalianOriginVixsrc });
+      }
+      const isItalianAudio = isSczSource || isItalianOriginVixsrc || playlistFetched && hasItalianAudio;
+      const resultLanguage = isItalianAudio ? "Italian" : "";
+      const isStremioAddon = Boolean(providerContext == null ? void 0 : providerContext.proxyUrl);
+      const targetProxySource = isStremioAddon ? cleanIframeUrl : cleanEmbedUrl;
+      const result = {
+        name: `StreamingCommunity`,
+        title: finalDisplayName,
+        url: streamUrl,
+        easyProxySourceUrl: targetProxySource,
+        quality: normalizedQuality,
+        type: "direct",
+        headers: streamHeaders,
+        behaviorHints: {
+          notWebReady: false
+        },
+        language: resultLanguage
+      };
+      const formatted = formatStream(result, "StreamingCommunity");
+      return formatted ? { stream: formatted, isItalianAudio } : null;
+    };
+    const streams = [];
+    let sourcesResolved = 0;
+    const vixRes = await vixPromise;
+    scPhases.apiMs += Date.now() - tApi;
+    const vixEmbedUrl = (vixRes == null ? void 0 : vixRes.embedUrl) ? rewriteStreamingCommunityHost(vixRes.embedUrl) : "";
+    const tEmbed = Date.now();
+    let vixItalian = false;
+    if (vixEmbedUrl) {
+      sourcesResolved += 1;
+      try {
+        const processed = await processEmbedSource({ ...vixRes, embedUrl: vixEmbedUrl, source: "vixsrc" });
+        if (processed) {
+          streams.push(processed.stream);
+          vixItalian = processed.isItalianAudio;
+        }
+      } finally {
+        settleVixsrcCheck(url);
+      }
+    }
+    if (!vixItalian) {
+      const sczWaitStartedAt = Date.now();
+      const sczRes = await sczPromise;
+      scPhases.apiMs += Date.now() - sczWaitStartedAt;
+      const sczEmbedUrl = (sczRes == null ? void 0 : sczRes.embedUrl) ? rewriteStreamingCommunityHost(sczRes.embedUrl) : "";
+      if (sczEmbedUrl && sczEmbedUrl !== vixEmbedUrl) {
         sourcesResolved += 1;
-        try {
-          const processed = yield processEmbedSource(__spreadProps(__spreadValues({}, vixRes), { embedUrl: vixEmbedUrl, source: "vixsrc" }));
-          if (processed) {
-            streams.push(processed.stream);
-            vixItalian = processed.isItalianAudio;
-          }
-        } finally {
-          settleVixsrcCheck(url);
-        }
+        const processed = await processEmbedSource({ ...sczRes, embedUrl: sczEmbedUrl, source: "scz" });
+        if (processed) streams.push(processed.stream);
       }
-      if (!vixItalian) {
-        const sczWaitStartedAt = Date.now();
-        const sczRes = yield sczPromise;
-        scPhases.apiMs += Date.now() - sczWaitStartedAt;
-        const sczEmbedUrl = (sczRes == null ? void 0 : sczRes.embedUrl) ? rewriteStreamingCommunityHost(sczRes.embedUrl) : "";
-        if (sczEmbedUrl && sczEmbedUrl !== vixEmbedUrl) {
-          sourcesResolved += 1;
-          const processed = yield processEmbedSource(__spreadProps(__spreadValues({}, sczRes), { embedUrl: sczEmbedUrl, source: "scz" }));
-          if (processed) streams.push(processed.stream);
-        }
-      }
-      if (streams.length === 0) {
-        console.log("[StreamingCommunity] Could not find embed src from any source");
-        scPhases.embedMs += Date.now() - tEmbed;
-        console.warn("[streamingcommunity][PhaseTiming]", JSON.stringify(__spreadProps(__spreadValues({}, scPhases), { proxy: scProxy, totalMs: Date.now() - scStartedAt, sources: 0 })));
-        return [];
-      }
-      const uniqueStreams = [];
-      const seenStreamUrls = /* @__PURE__ */ new Set();
-      for (const stream of streams) {
-        const streamUrl = String((stream == null ? void 0 : stream.url) || "").trim();
-        if (!streamUrl || seenStreamUrls.has(streamUrl)) continue;
-        seenStreamUrls.add(streamUrl);
-        uniqueStreams.push(stream);
-      }
-      const itaStreams = uniqueStreams.filter((s) => {
-        var _a;
-        return Boolean(s.language) || ((_a = s.title) == null ? void 0 : _a.includes("\u{1F1EE}\u{1F1F9}"));
-      });
+    }
+    if (streams.length === 0) {
+      console.log("[StreamingCommunity] Could not find embed src from any source");
       scPhases.embedMs += Date.now() - tEmbed;
-      console.warn("[streamingcommunity][PhaseTiming]", JSON.stringify(__spreadProps(__spreadValues({}, scPhases), { proxy: scProxy, totalMs: Date.now() - scStartedAt, sources: sourcesResolved })));
-      if (itaStreams.length > 0) {
-        return [itaStreams[0]];
-      }
-      return uniqueStreams.length > 0 ? [uniqueStreams[0]] : [];
-    } catch (error) {
-      console.error("[StreamingCommunity] Error:", error);
+      diagnosticLog("[streamingcommunity][PhaseTiming]", () => ({ ...scPhases, proxy: scProxy, totalMs: Date.now() - scStartedAt, sources: 0 }));
       return [];
     }
-  });
+    const uniqueStreams = [];
+    const seenStreamUrls = /* @__PURE__ */ new Set();
+    for (const stream of streams) {
+      const streamUrl = String((stream == null ? void 0 : stream.url) || "").trim();
+      if (!streamUrl || seenStreamUrls.has(streamUrl)) continue;
+      seenStreamUrls.add(streamUrl);
+      uniqueStreams.push(stream);
+    }
+    const itaStreams = uniqueStreams.filter((s) => {
+      var _a2;
+      return Boolean(s.language) || ((_a2 = s.title) == null ? void 0 : _a2.includes("\u{1F1EE}\u{1F1F9}"));
+    });
+    scPhases.embedMs += Date.now() - tEmbed;
+    diagnosticLog("[streamingcommunity][PhaseTiming]", () => ({ ...scPhases, proxy: scProxy, totalMs: Date.now() - scStartedAt, sources: sourcesResolved }));
+    if (itaStreams.length > 0) {
+      return [itaStreams[0]];
+    }
+    return uniqueStreams.length > 0 ? [uniqueStreams[0]] : [];
+  } catch (error) {
+    console.error("[StreamingCommunity] Error:", error);
+    return [];
+  }
 }
 module.exports = { getStreams };
