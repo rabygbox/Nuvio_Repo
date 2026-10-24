@@ -13,7 +13,7 @@
       "filename": "providers/authorized-streams.js",
       "supportedTypes": ["movie", "series"],
       "enabled": true,
-      "contentLanguage": "it",
+      "contentLanguage": ["it"],
       "supportedPlatforms": ["android_tv", "fire_tv"],
       "formats": ["mp4", "m3u8"],
       "supportsExternalPlayer": true,
