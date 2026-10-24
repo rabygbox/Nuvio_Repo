@@ -1,24 +1,25 @@
-{
-  "items": [
-    {
-      "tmdbId": "27205",
-      "mediaType": "movie",
-      "title": "Example authorized movie stream",
-      "url": "https://YOUR-DOMAIN.example/path/video.mp4",
-      "format": "mp4",
-      "quality": "1080p",
-      "language": "de"
-    },
-    {
-      "tmdbId": "1399",
-      "mediaType": "tv",
-      "season": 1,
-      "episode": 1,
-      "title": "Example authorized series episode",
-      "url": "https://YOUR-DOMAIN.example/path/episode.m3u8",
-      "format": "hls",
-      "quality": "1080p",
-      "language": "de"
-    }
-  ]
-}
+
+[
+  {
+    "tmdbId": "603",
+    "mediaType": "movie",
+    "title": "Beispiel-Film – Platzhalter",
+    "url": "https://media.example.org/film.mp4",
+    "provider": "MixDrop HD",
+    "quality": "1080p",
+    "type": "mp4",
+    "language": "it"
+  },
+  {
+    "tmdbId": "1399",
+    "mediaType": "series",
+    "season": 1,
+    "episode": 1,
+    "title": "Beispiel-Serie – Folge 1",
+    "url": "https://media.example.org/folge.m3u8",
+    "provider": "MaxStream",
+    "quality": "720p",
+    "type": "hls",
+    "language": "it"
+  }
+]
