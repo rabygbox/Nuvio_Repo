@@ -1,31 +1,23 @@
+
 {
-  "name": "Nuvio Authorized Streams",
+  "name": "Authorized Streams",
   "version": "1.0.0",
+  "description": "Nuvio-Plugin für autorisierte direkte Video-Streams",
+  "author": "User",
   "scrapers": [
     {
       "id": "authorized-streams",
-      "name": "Authorized Streams",
-      "description": "Streams from a user-maintained list of content you are authorized to distribute.",
+      "name": "Authorized MixDrop / MaxStream Links",
+      "description": "Liest autorisierte direkte Video-URLs aus einer JSON-Liste.",
       "version": "1.0.0",
-      "author": "Local user",
-      "supportedTypes": [
-        "movie",
-        "tv"
-      ],
       "filename": "providers/authorized-streams.js",
+      "supportedTypes": ["movie", "series"],
       "enabled": true,
-      "formats": [
-        "mp4",
-        "hls",
-        "m3u8"
-      ],
-      "contentLanguage": [
-        "de",
-        "it",
-        "en"
-      ],
-      "limited": false,
-      "disabledPlatforms": []
+      "contentLanguage": "it",
+      "supportedPlatforms": ["android_tv", "fire_tv"],
+      "formats": ["mp4", "m3u8"],
+      "supportsExternalPlayer": true,
+      "limited": true
     }
   ]
 }
