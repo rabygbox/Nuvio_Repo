@@ -1,53 +1,119 @@
-/*
- * Nuvio provider: Authorized Streams
- * Only returns direct media URLs that you own or are explicitly authorized to distribute.
- *
- * IMPORTANT: Replace DATA_URL with the raw URL of your own hosted data/streams.json.
- * This provider does not scrape third-party streaming sites or bypass access controls.
- */
-const DATA_URL = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO/main/data/streams.json";
 
-async function getStreams(tmdbId, mediaType, season, episode) {
+/*
+ * Nuvio: Authorized Streams
+ *
+ * Liest direkte, autorisierte HTTPS-Medienlinks.
+ * Ruft keine CB01- oder Hosting-Playerseiten ab und
+ * extrahiert keine Streams aus eingebetteten Playern.
+ */
+
+const STREAMS_URL = "";
+
+const LOCAL_STREAMS = [
+  /*
+  {
+    tmdbId: "603",
+    mediaType: "movie",
+    title: "Beispiel-Film",
+    url: "https://media.deine-domain.de/film.mp4",
+    provider: "MixDrop HD",
+    quality: "1080p",
+    type: "mp4",
+    language: "it"
+  },
+  {
+    tmdbId: "1399",
+    mediaType: "series",
+    season: 1,
+    episode: 1,
+    title: "Beispiel-Serie – Folge 1",
+    url: "https://media.deine-domain.de/folge.m3u8",
+    provider: "MaxStream",
+    quality: "720p",
+    type: "hls",
+    language: "it"
+  }
+  */
+];
+
+function isDirectHttpsUrl(url) {
+  if (typeof url !== "string") return false;
+
   try {
-    if (!/^https:\/\//i.test(DATA_URL) || DATA_URL.includes("YOUR_GITHUB_USERNAME")) {
-      return [];
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" &&
+      parsed.hostname.length > 0;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function loadStreams() {
+  if (!STREAMS_URL) {
+    return LOCAL_STREAMS;
+  }
+
+  try {
+    const response = await fetch(STREAMS_URL);
+
+    if (!response || !response.ok) {
+      return LOCAL_STREAMS;
     }
 
-    const response = await fetch(DATA_URL);
-    if (!response || !response.ok) return [];
+    const data = await response.json();
 
-    const database = await response.json();
-    const normalizedType = mediaType === "tv" || mediaType === "series" ? "tv" : "movie";
-    const entries = Array.isArray(database.items) ? database.items : [];
-
-    const matches = entries.filter(item => {
-      if (String(item.tmdbId) !== String(tmdbId)) return false;
-      const itemType = item.mediaType === "tv" || item.mediaType === "series" ? "tv" : "movie";
-      if (itemType !== normalizedType) return false;
-      if (normalizedType === "tv") {
-        return Number(item.season) === Number(season) &&
-               Number(item.episode) === Number(episode);
-      }
-      return true;
-    });
-
-    return matches
-      .filter(item => typeof item.url === "string" &&
-        /^https:\/\//i.test(item.url) &&
-        (item.url.includes(".m3u8") || item.url.includes(".mp4") ||
-         item.url.includes(".mpd") || item.format === "hls" ||
-         item.format === "mp4" || item.format === "dash"))
-      .map(item => ({
-        name: "Authorized Streams",
-        title: item.title || "Authorized direct stream",
-        url: item.url,
-        quality: item.quality || "Unknown",
-        ...(item.language ? { language: item.language } : {})
-      }));
+    return Array.isArray(data) ? data : LOCAL_STREAMS;
   } catch (_) {
-    // Fail safely when the data URL is unavailable or malformed.
-    return [];
+    return LOCAL_STREAMS;
   }
+}
+
+async function getStreams(
+  tmdbId,
+  mediaType,
+  season,
+  episode
+) {
+  const entries = await loadStreams();
+
+  return entries
+    .filter(item => {
+      if (!item || !isDirectHttpsUrl(item.url)) {
+        return false;
+      }
+
+      if (String(item.tmdbId) !== String(tmdbId)) {
+        return false;
+      }
+
+      const itemType = String(
+        item.mediaType || "movie"
+      ).toLowerCase();
+
+      if (itemType !== String(mediaType).toLowerCase()) {
+        return false;
+      }
+
+      if (itemType === "series") {
+        return Number(item.season) === Number(season) &&
+          Number(item.episode) === Number(episode);
+      }
+
+      return true;
+    })
+    .map(item => ({
+      title: item.title || "Authorized stream",
+      name: item.provider || "Direct stream",
+      url: item.url,
+      quality: item.quality || "Unknown",
+      language: item.language || "it",
+      provider: item.provider || "Authorized streams",
+      type:
+        item.type === "hls" ||
+        /\.m3u8(?:$|\?)/i.test(item.url)
+          ? "hls"
+          : undefined
+    }));
 }
 
 module.exports = { getStreams };
