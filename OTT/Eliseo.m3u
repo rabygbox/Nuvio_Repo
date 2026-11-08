@@ -1,5 +1,14 @@
 #EXTM3U url-tvg="" billed-till="" billed-msg=" 💬 / 👤 " max-conn=""
 
+#EXTINF:-1 tvg-id="rai1.it" tvg-name="Rai 1" group-title="Top Italia", Rai 1
+https://dash2.antik.sk/live/test_rai_uno_tizen/playlist.m3u8
+
+#EXTINF:-1 tvg-id="rai2.it" tvg-name="Rai 2" group-title="Top Italia", Rai 2
+http://team-tv.co:81/rai2/index.m3u8
+
+#EXTINF:-1 tvg-id="rai3.it" tvg-name="Rai 3" group-title="Top Italia", Rai 3
+https://tgrbolzano-live.akamaized.net/hls/live/2025560/tgrbolzano/tgrbolzano/playlist.m3u8
+
 #EXTINF:-1 tvg-id="rete4" tvg-name="Rete 4" group-title="Top Italia", Rete 4
 #KODIPROP:inputstream.adaptive.manifest_type=mpd
 #KODIPROP:inputstream.adaptive.license_type=org.w3.clearkey
