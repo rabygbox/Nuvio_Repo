@@ -34,6 +34,10 @@ https://live03p-seg.msf.cdn.mediaset.net/live/ch-c5/c5-dash-widevine.isml/manife
 #KODIPROP:inputstream.adaptive.license_key=00f9f3c0783536b8ee91704e23b78016:bfd04d6f544c9cc4d35cb13ab6778587
 https://live03p-seg.msf.cdn.mediaset.net/live/ch-i1/i1-dash-widevine.isml/manifest.mpd
 
+#EXTINF:-1 tvg-id="tv8.it" tvg-name="TV8" group-title="Top Italia", TV8
+http://102.129.186.182:81/tv8/index.m3u8
+
+
 #EXTINF:-1 tvg-id="20" tvg-name="20 Mediaset" group-title="Top Italia", 20 Mediaset
 #KODIPROP:inputstream.adaptive.manifest_type=mpd
 #KODIPROP:inputstream.adaptive.license_type=org.w3.clearkey
@@ -121,6 +125,12 @@ https://live03p-seg.msf.cdn.mediaset.net/live/ch-kb/kb-dash-widevine.isml/manife
 #KODIPROP:inputstream.adaptive.license_type=clearkey
 #KODIPROP:inputstream.adaptive.license_key=00f9f3c0783536b8021ca89847d420bc:4d8fd3d8cd51b438086fbdbb892c4354
 https://live03p-seg.msf.cdn.mediaset.net/live/ch-la/la-dash-widevine.isml/manifest.mpd
+
+#EXTINF:-1 tvg-id="cartoonnetwork.it" tvg-name="Cartoon Network" group-title="Top Italia", Cartoon Network
+http://185.227.34.104/stream/122/index.m3u8
+
+#EXTINF:-1 tvg-id="super.it" tvg-name="Super!" group-title="Top Italia", Super!
+https://495c5a85d9074f29acffeaea9e0215eb.msvdn.net/super/super_main/super_main_hbbtv/playlist.m3u8
 
 #EXTINF:-1 tvg-id="italia2" tvg-name="Italia 2" group-title="Top Italia", Italia 2
 #KODIPROP:inputstream.adaptive.manifest_type=mpd
